@@ -58,20 +58,60 @@ class _HomePageState extends State<HomePage> {
                   builder: (context) => AlertDialog(
                     backgroundColor: Colors.grey[200],
                     title: const Text(
-                      'Theme Switcher',
+                      'Create new shipment',
                       style: TextStyle(
                           color: Colors.deepPurple,
                           fontSize: 24,
                           fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
-                    content: const IconButton(
-                      onPressed: null,
-                      icon: Icon(
-                        Icons.light_mode_rounded,
-                        color: Colors.deepPurpleAccent,
-                        size: 50,
-                      ),
+                    content: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              style: const ButtonStyle(
+                                  backgroundColor: MaterialStatePropertyAll(
+                                      Colors.redAccent)),
+                              child: const Text("Cancel",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.3,
+                                  )),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const CreateNewTrackingPage()));
+                              },
+                              style: const ButtonStyle(
+                                  backgroundColor: MaterialStatePropertyAll(
+                                      Colors.greenAccent)),
+                              child: const Text("Create",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.3,
+                                  )),
+                            ),
+                          ],
+                        )
+                      ],
                     ),
                   ),
                 );
@@ -844,6 +884,80 @@ class _LogsState extends State<Logs> {
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ------------------------------------------ CREATE NEW TRACKING SCAFFOLD ----------------------------------------------------------
+
+class CreateNewTrackingPage extends StatefulWidget {
+  const CreateNewTrackingPage({super.key});
+
+  @override
+  State<CreateNewTrackingPage> createState() => _CreateNewTrackingPageState();
+}
+
+class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
+  String city1 = '';
+  String city2 = '';
+  String city3 = '';
+  String country1 = '';
+  String country2 = '';
+  String country3 = '';
+  String cost = '';
+  String weight = '';
+  String id = '';
+  String title = '';
+  String residential = '';
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        shadowColor: Colors.deepPurpleAccent,
+        elevation: 1,
+        backgroundColor: Colors.white,
+        title: const Text("Create new shipment tracking"),
+        centerTitle: true,
+        titleTextStyle: const TextStyle(
+          color: Colors.deepPurple,
+          fontWeight: FontWeight.w600,
+          fontSize: 20,
+        ),
+      ),
+      body: Center(
+        child: Container(
+          padding: const EdgeInsets.only(left: 20, right: 20),
+          child: Column(
+            children: [
+              const Row(
+                children: [],
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 20),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const HomePage()));
+                },
+                style: const ButtonStyle(
+                  backgroundColor: MaterialStatePropertyAll(Colors.greenAccent),
+                  minimumSize: MaterialStatePropertyAll(Size.fromHeight(40)),
+                ),
+                child: const Text("Create",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        letterSpacing: 1.5)),
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
