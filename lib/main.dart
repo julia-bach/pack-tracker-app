@@ -76,7 +76,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               },
-              icon: const Icon(Icons.window, color: Colors.white)),
+              icon: const Icon(Icons.add_circle_outline_outlined,
+                  color: Colors.white)),
         ),
         title: const Text('PackTracker'),
         centerTitle: true,
@@ -223,10 +224,10 @@ class _ServicesState extends State<Services> {
           children: [
             Padding(padding: EdgeInsets.only(left: 20)),
             Text(
-              'My Services',
+              'My shipments',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
-            Padding(padding: EdgeInsets.only(left: 80, right: 80)),
+            Padding(padding: EdgeInsets.only(left: 70, right: 70)),
             Row(
               children: [
                 Text(
@@ -293,25 +294,25 @@ class _CardState extends State<Card> {
                 borderRadius: BorderRadius.circular(50),
                 child: Image.asset('assets/images/${widget.image}.png')),
             if (widget.image == 'truck')
-              const Text('Courier',
+              const Text('Title',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 17,
                   )),
             if (widget.image == 'truck')
-              const Text('50k+ courier',
+              const Text('id',
                   style: TextStyle(
                     fontSize: 14,
                   )),
             if (widget.image == 'package')
-              const Text('Shipping',
+              const Text('Title',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 17,
                   )),
             if (widget.image == 'package')
               const Text(
-                'Safe delivery',
+                'id',
                 style: TextStyle(
                   fontSize: 14,
                 ),
@@ -354,7 +355,7 @@ class _PackagePageState extends State<PackagePage> {
               icon: const Icon(Icons.arrow_back_rounded),
               tooltip: 'Go back to the homepage',
             )),
-        title: Text('username'),
+        title: Text(widget.id),
         centerTitle: true,
         titleTextStyle: const TextStyle(
           color: Colors.deepPurple,
@@ -397,14 +398,74 @@ class _TrackingState extends State<Tracking> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Tracking: ${widget.id}',
-            style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 28,
-                letterSpacing: 1.2,
-                height: 2),
-            textAlign: TextAlign.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Title',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                    letterSpacing: 1.2,
+                    height: 2),
+                textAlign: TextAlign.start,
+              ),
+              IconButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: Colors.grey[200],
+                      title: Text(
+                        'Do you want to delete this shipment tracking?',
+                        style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      content: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(
+                              Icons.indeterminate_check_box,
+                              color: Colors.redAccent,
+                              size: 65,
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 40),
+                          ),
+                          const IconButton(
+                            // DELETE SHIPMENT CODE ---------------------------------------------------------------------------------
+                            onPressed: null,
+                            icon: Icon(
+                              Icons.check_box,
+                              color: Colors.greenAccent,
+                              size: 65,
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 30, bottom: 75),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.delete,
+                  color: Colors.redAccent,
+                  size: 24,
+                ),
+              )
+            ],
           ),
           const Padding(padding: EdgeInsets.only(top: 15, bottom: 15)),
           Column(
