@@ -155,7 +155,73 @@ class FindPackage extends StatefulWidget {
 
 class _FindPackageState extends State<FindPackage> {
   final controlling = TextEditingController();
+  final List<String> data = [];
   String trackNumber = '';
+  Future fetchData(String id) async {
+    final snapshot = await ref.child(id).get();
+    if (snapshot.exists) {
+      for (DataSnapshot snap in snapshot.children) {
+        data.add(snap.value.toString());
+        while (data.length < 8) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Colors.grey[200],
+              title: const Text(
+                'Fetching data...',
+                style: TextStyle(
+                    color: Colors.deepPurple,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        print(
+            "_----------------_______________--------------------________________--------------------____________");
+        print(data);
+      }
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.grey[200],
+          title: const Text(
+            'Shipment not found!',
+            style: TextStyle(
+                color: Colors.deepPurple,
+                fontSize: 24,
+                fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: TextButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const HomePage()));
+            },
+            style: ButtonStyle(
+              shape: MaterialStatePropertyAll(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              backgroundColor: MaterialStatePropertyAll(Colors.grey[300]),
+            ),
+            child: Text("Go back",
+                style: TextStyle(
+                  color: Colors.deepPurple[400],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.3,
+                )),
+          ),
+        ),
+      );
+      print('No data available.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
@@ -216,12 +282,13 @@ class _FindPackageState extends State<FindPackage> {
                     suffixIcon: IconButton(
                       onPressed: () {
                         trackNumber = controlling.text;
+                        fetchData(trackNumber);
                         controlling.clear();
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    PackagePage(id: trackNumber)));
+                                    PackagePage(id: trackNumber, info: data)));
                       },
                       icon: const Icon(
                         Icons.send_rounded,
@@ -372,7 +439,8 @@ class _CardState extends State<Card> {
 
 class PackagePage extends StatefulWidget {
   final String id;
-  const PackagePage({super.key, required this.id});
+  final List<String> info;
+  const PackagePage({super.key, required this.id, required this.info});
 
   @override
   State<PackagePage> createState() => _PackagePageState();
@@ -415,8 +483,8 @@ class _PackagePageState extends State<PackagePage> {
       body: Center(
           child: Column(
         children: [
-          Tracking(id: widget.id),
-          History(id: widget.id),
+          Tracking(id: widget.id, info: widget.info),
+          History(id: widget.id, info: widget.info),
         ],
       )),
     );
@@ -427,13 +495,18 @@ class _PackagePageState extends State<PackagePage> {
 
 class Tracking extends StatefulWidget {
   final String id;
-  const Tracking({super.key, required this.id});
+  final List<String> info;
+  const Tracking({super.key, required this.id, required this.info});
 
   @override
   State<Tracking> createState() => _TrackingState();
 }
 
 class _TrackingState extends State<Tracking> {
+  Future removeFromDB(String id) async {
+    await ref.child(id).remove();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -445,9 +518,9 @@ class _TrackingState extends State<Tracking> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                "Title",
-                style: TextStyle(
+              Text(
+                widget.info[6],
+                style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
                     letterSpacing: 1.2,
@@ -488,7 +561,7 @@ class _TrackingState extends State<Tracking> {
                           IconButton(
                             onPressed: () {
                               String id = widget.id;
-                              ref.child(id).remove();
+                              removeFromDB(id);
                               Navigator.pop(context);
                               showDialog(
                                 barrierDismissible: false,
@@ -548,15 +621,9 @@ class _TrackingState extends State<Tracking> {
           const Padding(padding: EdgeInsets.only(top: 15, bottom: 15)),
           Column(
             children: [
-              SentFrom(
-                id: widget.id,
-              ),
-              Fee(
-                id: widget.id,
-              ),
-              CurrentAt(
-                id: widget.id,
-              ),
+              SentFrom(id: widget.id, info: widget.info),
+              Fee(id: widget.id, info: widget.info),
+              CurrentAt(id: widget.id, info: widget.info),
             ],
           ),
         ],
@@ -569,23 +636,14 @@ class _TrackingState extends State<Tracking> {
 
 class SentFrom extends StatefulWidget {
   final String id;
-  const SentFrom({super.key, required this.id});
+  final List<String> info;
+  const SentFrom({super.key, required this.id, required this.info});
 
   @override
   State<SentFrom> createState() => _SentFromState();
 }
 
 class _SentFromState extends State<SentFrom> {
-  List<String> cities = [
-    'Sukabumi, Indonesia',
-    'São Paulo, Brazil',
-    'New York, USA'
-  ];
-  List<String> numbers = [
-    'No resi 0123456789',
-    'No resi 9876543210',
-    'No resi 4663880000',
-  ];
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -602,7 +660,7 @@ class _SentFromState extends State<SentFrom> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                cities[int.parse(widget.id)],
+                widget.info[1],
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -610,7 +668,7 @@ class _SentFromState extends State<SentFrom> {
                     letterSpacing: 1.2,
                     height: 1.5),
               ),
-              Text(numbers[int.parse(widget.id)],
+              Text(widget.info[5],
                   style: TextStyle(
                       color: Colors.grey[300],
                       fontSize: 13,
@@ -632,14 +690,14 @@ class _SentFromState extends State<SentFrom> {
 
 class Fee extends StatefulWidget {
   final String id;
-  const Fee({super.key, required this.id});
+  final List<String> info;
+  const Fee({super.key, required this.id, required this.info});
 
   @override
   State<Fee> createState() => _FeeState();
 }
 
 class _FeeState extends State<Fee> {
-  List<String> fees = ['-2,50 USD', '-4,49 USD', '-20,75 R\$'];
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -653,11 +711,14 @@ class _FeeState extends State<Fee> {
             size: 12,
           ),
           const Padding(padding: EdgeInsets.only(right: 7.5, left: 7.5)),
-          Text(fees[int.parse(widget.id)],
+          const Text("-",
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+          Text(widget.info[4],
               style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w500)),
           const Padding(padding: EdgeInsets.only(right: 7.5, left: 7.5)),
-          Text('Our free (included)',
+          Text('USD       Our free (included)',
               style: TextStyle(
                 color: Colors.grey[300],
                 fontSize: 11,
@@ -673,18 +734,14 @@ class _FeeState extends State<Fee> {
 
 class CurrentAt extends StatefulWidget {
   final String id;
-  const CurrentAt({super.key, required this.id});
+  final List<String> info;
+  const CurrentAt({super.key, required this.id, required this.info});
 
   @override
   State<CurrentAt> createState() => _CurrentAtState();
 }
 
 class _CurrentAtState extends State<CurrentAt> {
-  List<String> city = [
-    'Poznan, Poland',
-    'Moscow, Russia',
-    'Cairo, Egypt',
-  ];
   List<String> weight = [
     'Parcel, 20 KG',
     'Parcel, 2 KG',
@@ -704,7 +761,7 @@ class _CurrentAtState extends State<CurrentAt> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
-            city[int.parse(widget.id)],
+            widget.info[2],
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -712,7 +769,13 @@ class _CurrentAtState extends State<CurrentAt> {
                 letterSpacing: 1.2,
                 height: 1.5),
           ),
-          Text(weight[int.parse(widget.id)],
+          Text("Parcel, ",
+              style: TextStyle(
+                  color: Colors.grey[300],
+                  fontSize: 13,
+                  fontWeight: FontWeight.w300,
+                  height: 2)),
+          Text(widget.info[7],
               style: TextStyle(
                   color: Colors.grey[300],
                   fontSize: 13,
@@ -727,7 +790,8 @@ class _CurrentAtState extends State<CurrentAt> {
 // HISTORY SECTION
 class History extends StatefulWidget {
   final String id;
-  const History({super.key, required this.id});
+  final List<String> info;
+  const History({super.key, required this.id, required this.info});
 
   @override
   State<History> createState() => _HistoryState();
@@ -979,6 +1043,20 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
   TextEditingController _controllerResidential = TextEditingController();
   TextEditingController _controllerCost = TextEditingController();
   TextEditingController _controllerWeight = TextEditingController();
+
+  Future createTrack(int id) async {
+    await ref.child("$id").set({
+      "title": title,
+      "From": "$city1, $country1",
+      "And": "$city3, $country3",
+      "To": "$city2, $country2",
+      "residential": residential,
+      "cost": cost,
+      "weight": weight,
+      "_updateCounter": _updateCounter,
+    });
+  }
+
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
@@ -1193,25 +1271,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                               ),
                             );
                           } else {
-                            ref.child("$id").set({
-                              "title": title,
-                              "from": {
-                                "city": city1,
-                                "country": country1,
-                              },
-                              "and": {
-                                "city": city3,
-                                "country": country3,
-                              },
-                              "to": {
-                                "city": city2,
-                                "country": country2,
-                              },
-                              "residential": residential,
-                              "cost": cost,
-                              "weight": weight,
-                              "_updateCounter": _updateCounter,
-                            });
+                            createTrack(id);
                             showDialog(
                               context: context,
                               builder: (context) => AlertDialog(
