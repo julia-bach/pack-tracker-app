@@ -98,9 +98,9 @@ class _HomePageState extends State<HomePage> {
                                         builder: (context) =>
                                             const CreateNewTrackingPage()));
                               },
-                              style: const ButtonStyle(
+                              style: ButtonStyle(
                                   backgroundColor: MaterialStatePropertyAll(
-                                      Colors.greenAccent)),
+                                      Colors.green[400])),
                               child: const Text("Create",
                                   style: TextStyle(
                                     color: Colors.white,
@@ -482,12 +482,12 @@ class _TrackingState extends State<Tracking> {
                           const Padding(
                             padding: EdgeInsets.only(left: 40),
                           ),
-                          const IconButton(
+                          IconButton(
                             // DELETE SHIPMENT CODE ---------------------------------------------------------------------------------
                             onPressed: null,
                             icon: Icon(
                               Icons.check_box,
-                              color: Colors.greenAccent,
+                              color: Colors.green[400],
                               size: 65,
                             ),
                           ),
@@ -723,25 +723,45 @@ class TitleH extends StatefulWidget {
 }
 
 class _TitleHState extends State<TitleH> {
+  int _updateCounter = 1;
+
+  void increaseCounter() {
+    setState(() {
+      _updateCounter++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('History',
+          const Text('History',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2)),
           Row(
             children: [
-              Text('Details', style: TextStyle(color: Colors.deepPurpleAccent)),
-              Icon(
-                Icons.keyboard_arrow_right_rounded,
-                color: Colors.deepPurpleAccent,
-              )
+              _updateCounter <= 4
+                  ? TextButton(
+                      onPressed: () {
+                        increaseCounter();
+                      },
+                      style: const ButtonStyle(
+                          foregroundColor: MaterialStatePropertyAll(
+                              Colors.deepPurpleAccent)),
+                      child: const Text("Update tracking"),
+                    )
+                  : TextButton(
+                      onPressed: () {},
+                      style: const ButtonStyle(
+                          foregroundColor:
+                              MaterialStatePropertyAll(Colors.grey)),
+                      child: const Text("Shipment received"),
+                    )
             ],
           ),
         ],
@@ -899,66 +919,185 @@ class CreateNewTrackingPage extends StatefulWidget {
 }
 
 class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
-  String city1 = '';
-  String city2 = '';
-  String city3 = '';
-  String country1 = '';
-  String country2 = '';
-  String country3 = '';
-  String cost = '';
-  String weight = '';
   String id = '';
   String title = '';
   String residential = '';
+  String weight = '';
+  String cost = '';
+  String city1 = '';
+  String country1 = '';
+  String city2 = '';
+  String country2 = '';
+  String city3 = '';
+  String country3 = '';
+  final int _updateCounter = 0;
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        shadowColor: Colors.deepPurpleAccent,
-        elevation: 1,
-        backgroundColor: Colors.white,
-        title: const Text("Create new shipment tracking"),
-        centerTitle: true,
-        titleTextStyle: const TextStyle(
-          color: Colors.deepPurple,
-          fontWeight: FontWeight.w600,
-          fontSize: 20,
-        ),
-      ),
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.only(left: 20, right: 20),
-          child: Column(
-            children: [
-              const Row(
-                children: [],
-              ),
-              const Padding(
-                padding: EdgeInsets.only(top: 20),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const HomePage()));
-                },
-                style: const ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(Colors.greenAccent),
-                  minimumSize: MaterialStatePropertyAll(Size.fromHeight(40)),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          appBar: AppBar(
+            shadowColor: Colors.deepPurpleAccent,
+            elevation: 2,
+            backgroundColor: Colors.deepPurple,
+            title: const Text("Create new shipment tracking"),
+            centerTitle: true,
+            titleTextStyle: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+            ),
+          ),
+          body: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Container(
+                  padding: const EdgeInsets.only(left: 20, right: 20),
+                  child: Column(
+                    children: [
+                      const Padding(padding: EdgeInsets.only(bottom: 60)),
+                      const Text("How should we call this shipment?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Title',
+                          ),
+                        ),
+                      ),
+                      const Padding(padding: EdgeInsets.only(bottom: 45)),
+                      const Text("Where does it come from?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(
+                                labelText: 'City',
+                              ),
+                            ),
+                          ),
+                          Padding(padding: EdgeInsets.only(left: 20)),
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(labelText: 'Country'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Padding(padding: EdgeInsets.only(bottom: 45)),
+                      const Text("What is the residential number for it?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Expanded(
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Resi',
+                          ),
+                        ),
+                      ),
+                      const Padding(padding: EdgeInsets.only(bottom: 45)),
+                      const Text("What's the destination?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(
+                                labelText: 'City',
+                              ),
+                            ),
+                          ),
+                          Padding(padding: EdgeInsets.only(left: 20)),
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(labelText: 'Country'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Padding(padding: EdgeInsets.only(bottom: 45)),
+                      const Text("How much does it weight?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Expanded(
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Weight',
+                          ),
+                        ),
+                      ),
+                      const Padding(padding: EdgeInsets.only(bottom: 45)),
+                      const Text("Where's going to be its stop?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(
+                                labelText: 'City',
+                              ),
+                            ),
+                          ),
+                          Padding(padding: EdgeInsets.only(left: 20)),
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(labelText: 'Country'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Padding(padding: EdgeInsets.only(bottom: 45)),
+                      const Text("How much will it cost?",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const Expanded(
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Cost',
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 30),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const HomePage()));
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStatePropertyAll(Colors.green[400]),
+                          minimumSize: const MaterialStatePropertyAll(
+                              Size.fromHeight(40)),
+                        ),
+                        child: const Text("Create",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                                letterSpacing: 1.5)),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 30),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text("Create",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                        letterSpacing: 1.5)),
-              )
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
 }
