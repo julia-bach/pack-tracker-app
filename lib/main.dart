@@ -162,26 +162,10 @@ class _FindPackageState extends State<FindPackage> {
     if (snapshot.exists) {
       for (DataSnapshot snap in snapshot.children) {
         data.add(snap.value.toString());
-        while (data.length < 8) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: Colors.grey[200],
-              title: const Text(
-                'Fetching data...',
-                style: TextStyle(
-                    color: Colors.deepPurple,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
-        }
-        print(
-            "_----------------_______________--------------------________________--------------------____________");
-        print(data);
       }
+      print(
+          "_----------------_______________--------------------________________--------------------____________");
+      print(data);
     } else {
       showDialog(
         context: context,
@@ -519,7 +503,7 @@ class _TrackingState extends State<Tracking> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                widget.info[6],
+                widget.info[6].isNotEmpty ? widget.info[6] : "Loading...",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
@@ -660,7 +644,7 @@ class _SentFromState extends State<SentFrom> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.info[1],
+                widget.info[1].isNotEmpty ? widget.info[1] : "Loading...",
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -668,7 +652,7 @@ class _SentFromState extends State<SentFrom> {
                     letterSpacing: 1.2,
                     height: 1.5),
               ),
-              Text(widget.info[5],
+              Text(widget.info[5].isNotEmpty ? widget.info[5] : "Loading...",
                   style: TextStyle(
                       color: Colors.grey[300],
                       fontSize: 13,
@@ -714,7 +698,7 @@ class _FeeState extends State<Fee> {
           const Text("-",
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-          Text(widget.info[4],
+          Text(widget.info[4].isNotEmpty ? widget.info[4] : "Loading...",
               style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w500)),
           const Padding(padding: EdgeInsets.only(right: 7.5, left: 7.5)),
@@ -742,11 +726,6 @@ class CurrentAt extends StatefulWidget {
 }
 
 class _CurrentAtState extends State<CurrentAt> {
-  List<String> weight = [
-    'Parcel, 20 KG',
-    'Parcel, 2 KG',
-    'Parcel, 117 KG',
-  ];
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -761,7 +740,7 @@ class _CurrentAtState extends State<CurrentAt> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
-            widget.info[2],
+            widget.info[2].isNotEmpty ? widget.info[2] : "Loading...",
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -775,7 +754,7 @@ class _CurrentAtState extends State<CurrentAt> {
                   fontSize: 13,
                   fontWeight: FontWeight.w300,
                   height: 2)),
-          Text(widget.info[7],
+          Text(widget.info[7].isNotEmpty ? widget.info[7] : "Loading...",
               style: TextStyle(
                   color: Colors.grey[300],
                   fontSize: 13,
