@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:math';
 
 FirebaseDatabase database = FirebaseDatabase.instance;
 DatabaseReference ref = FirebaseDatabase.instance.ref("trackings");
@@ -79,12 +80,18 @@ class _HomePageState extends State<HomePage> {
                               onPressed: () {
                                 Navigator.pop(context);
                               },
-                              style: const ButtonStyle(
-                                  backgroundColor: MaterialStatePropertyAll(
-                                      Colors.redAccent)),
-                              child: const Text("Cancel",
+                              style: ButtonStyle(
+                                shape: MaterialStatePropertyAll(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                                backgroundColor:
+                                    MaterialStatePropertyAll(Colors.grey[300]),
+                              ),
+                              child: Text("Cancel",
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Colors.deepPurple[400],
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 1.3,
@@ -100,7 +107,7 @@ class _HomePageState extends State<HomePage> {
                               },
                               style: ButtonStyle(
                                   backgroundColor: MaterialStatePropertyAll(
-                                      Colors.green[400])),
+                                      Colors.deepPurple[600])),
                               child: const Text("Create",
                                   style: TextStyle(
                                     color: Colors.white,
@@ -210,15 +217,11 @@ class _FindPackageState extends State<FindPackage> {
                       onPressed: () {
                         trackNumber = controlling.text;
                         controlling.clear();
-                        if (trackNumber != '' && trackNumber == '0' ||
-                            trackNumber == '1' ||
-                            trackNumber == '2') {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      PackagePage(id: trackNumber)));
-                        }
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    PackagePage(id: trackNumber)));
                       },
                       icon: const Icon(
                         Icons.send_rounded,
@@ -443,7 +446,7 @@ class _TrackingState extends State<Tracking> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
-                'Title',
+                "Title",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
@@ -473,9 +476,9 @@ class _TrackingState extends State<Tracking> {
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.indeterminate_check_box,
-                              color: Colors.redAccent,
+                              color: Colors.grey[400],
                               size: 65,
                             ),
                           ),
@@ -483,11 +486,46 @@ class _TrackingState extends State<Tracking> {
                             padding: EdgeInsets.only(left: 40),
                           ),
                           IconButton(
-                            // DELETE SHIPMENT CODE ---------------------------------------------------------------------------------
-                            onPressed: null,
+                            onPressed: () {
+                              String id = widget.id;
+                              ref.child(id).remove();
+                              Navigator.pop(context);
+                              showDialog(
+                                barrierDismissible: false,
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: Colors.grey[200],
+                                  title: Text(
+                                    'Shipment $id was removed!',
+                                    style: TextStyle(
+                                        color: Colors.grey[800],
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  content: TextButton(
+                                    style: const ButtonStyle(
+                                        backgroundColor:
+                                            MaterialStatePropertyAll(
+                                                Colors.deepPurple),
+                                        foregroundColor:
+                                            MaterialStatePropertyAll(
+                                                Colors.white)),
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const HomePage()));
+                                    },
+                                    child: const Text("Go back to home page"),
+                                  ),
+                                ),
+                              );
+                            },
                             icon: Icon(
                               Icons.check_box,
-                              color: Colors.green[400],
+                              color: Colors.deepPurple[600],
                               size: 65,
                             ),
                           ),
@@ -919,18 +957,28 @@ class CreateNewTrackingPage extends StatefulWidget {
 }
 
 class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
-  String id = '';
+  int id = 0;
   String title = '';
-  String residential = '';
-  String weight = '';
-  String cost = '';
   String city1 = '';
   String country1 = '';
-  String city2 = '';
-  String country2 = '';
   String city3 = '';
   String country3 = '';
-  final int _updateCounter = 0;
+  String city2 = '';
+  String country2 = '';
+  String residential = "";
+  String cost = "";
+  String weight = "";
+  int _updateCounter = 0;
+  TextEditingController _controllerTitle = TextEditingController();
+  TextEditingController _controllerCity1 = TextEditingController();
+  TextEditingController _controllerCountry1 = TextEditingController();
+  TextEditingController _controllerCity3 = TextEditingController();
+  TextEditingController _controllerCountry3 = TextEditingController();
+  TextEditingController _controllerCity2 = TextEditingController();
+  TextEditingController _controllerCountry2 = TextEditingController();
+  TextEditingController _controllerResidential = TextEditingController();
+  TextEditingController _controllerCost = TextEditingController();
+  TextEditingController _controllerWeight = TextEditingController();
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
@@ -960,9 +1008,11 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("How should we call this shipment?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Expanded(
+                      Expanded(
                         child: TextField(
-                          decoration: InputDecoration(
+                          controller: _controllerTitle,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
                             hintText: 'Title',
                           ),
                         ),
@@ -971,19 +1021,24 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("Where does it come from?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Row(
+                      Row(
                         children: [
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(
+                              controller: _controllerCity1,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
                                 labelText: 'City',
                               ),
                             ),
                           ),
-                          Padding(padding: EdgeInsets.only(left: 20)),
+                          const Padding(padding: EdgeInsets.only(left: 20)),
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(labelText: 'Country'),
+                              controller: _controllerCountry1,
+                              textInputAction: TextInputAction.next,
+                              decoration:
+                                  const InputDecoration(labelText: 'Country'),
                             ),
                           ),
                         ],
@@ -992,11 +1047,14 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("What is the residential number for it?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Expanded(
+                      Expanded(
                         child: TextField(
+                          controller: _controllerResidential,
+                          maxLength: 10,
+                          textInputAction: TextInputAction.next,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            hintText: 'Resi',
+                          decoration: const InputDecoration(
+                            hintText: '10 digit number',
                           ),
                         ),
                       ),
@@ -1004,19 +1062,24 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("What's the destination?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Row(
+                      Row(
                         children: [
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(
+                              controller: _controllerCity2,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
                                 labelText: 'City',
                               ),
                             ),
                           ),
-                          Padding(padding: EdgeInsets.only(left: 20)),
+                          const Padding(padding: EdgeInsets.only(left: 20)),
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(labelText: 'Country'),
+                              controller: _controllerCountry2,
+                              textInputAction: TextInputAction.next,
+                              decoration:
+                                  const InputDecoration(labelText: 'Country'),
                             ),
                           ),
                         ],
@@ -1025,10 +1088,12 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("How much does it weight?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Expanded(
+                      Expanded(
                         child: TextField(
+                          controller: _controllerWeight,
+                          textInputAction: TextInputAction.next,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: 'Weight',
                           ),
                         ),
@@ -1037,19 +1102,24 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("Where's going to be its stop?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Row(
+                      Row(
                         children: [
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(
+                              controller: _controllerCity3,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
                                 labelText: 'City',
                               ),
                             ),
                           ),
-                          Padding(padding: EdgeInsets.only(left: 20)),
+                          const Padding(padding: EdgeInsets.only(left: 20)),
                           Expanded(
                             child: TextField(
-                              decoration: InputDecoration(labelText: 'Country'),
+                              controller: _controllerCountry3,
+                              textInputAction: TextInputAction.next,
+                              decoration:
+                                  const InputDecoration(labelText: 'Country'),
                             ),
                           ),
                         ],
@@ -1058,10 +1128,12 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       const Text("How much will it cost?",
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w500)),
-                      const Expanded(
+                      Expanded(
                         child: TextField(
+                          controller: _controllerCost,
+                          textInputAction: TextInputAction.done,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             hintText: 'Cost',
                           ),
                         ),
@@ -1071,14 +1143,109 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const HomePage()));
+                          _updateCounter = 1;
+                          // var rng = Random();
+                          // id = rng.nextInt(900000) + 100000;
+                          id = 2;
+                          title = _controllerTitle.text;
+                          cost = _controllerCost.text;
+                          weight = _controllerWeight.text;
+                          residential = _controllerResidential.text;
+                          city1 = _controllerCity1.text;
+                          city2 = _controllerCity2.text;
+                          city3 = _controllerCity3.text;
+                          country1 = _controllerCountry1.text;
+                          country2 = _controllerCountry2.text;
+                          country3 = _controllerCountry3.text;
+                          if (title == "" ||
+                              cost == "" ||
+                              weight == "" ||
+                              residential == "" ||
+                              city1 == "" ||
+                              city2 == "" ||
+                              city3 == "" ||
+                              country1 == "" ||
+                              country2 == "" ||
+                              country3 == "") {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: Colors.grey[200],
+                                title: Text(
+                                  'Some information are missing!',
+                                  style: TextStyle(
+                                      color: Colors.grey[800],
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                content: TextButton(
+                                  style: const ButtonStyle(
+                                      backgroundColor: MaterialStatePropertyAll(
+                                          Colors.deepPurple),
+                                      foregroundColor: MaterialStatePropertyAll(
+                                          Colors.white)),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text("Finish filling"),
+                                ),
+                              ),
+                            );
+                          } else {
+                            ref.child("$id").set({
+                              "title": title,
+                              "from": {
+                                "city": city1,
+                                "country": country1,
+                              },
+                              "and": {
+                                "city": city3,
+                                "country": country3,
+                              },
+                              "to": {
+                                "city": city2,
+                                "country": country2,
+                              },
+                              "residential": residential,
+                              "cost": cost,
+                              "weight": weight,
+                              "_updateCounter": _updateCounter,
+                            });
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: Colors.grey[200],
+                                title: Text(
+                                  'Shipment created and will be tracked!',
+                                  style: TextStyle(
+                                      color: Colors.grey[800],
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                content: TextButton(
+                                  style: const ButtonStyle(
+                                      backgroundColor: MaterialStatePropertyAll(
+                                          Colors.deepPurple),
+                                      foregroundColor: MaterialStatePropertyAll(
+                                          Colors.white)),
+                                  onPressed: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const HomePage()));
+                                  },
+                                  child: const Text("Go back home"),
+                                ),
+                              ),
+                            );
+                          }
                         },
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStatePropertyAll(Colors.green[400]),
+                              MaterialStatePropertyAll(Colors.deepPurple[400]),
                           minimumSize: const MaterialStatePropertyAll(
                               Size.fromHeight(40)),
                         ),
