@@ -170,6 +170,7 @@ class _FindPackageState extends State<FindPackage> {
     } else {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.grey[200],
           title: const Text(
@@ -310,9 +311,9 @@ class Services extends StatefulWidget {
 }
 
 class _ServicesState extends State<Services> {
-  String getValue() {
-    final referencer = refQ.child("amount").get();
-    final data = referencer.toString();
+  Future<String> getValue() async {
+    final referencer = await refQ.child("amount").get();
+    final data = referencer.value.toString();
     return data;
   }
 
@@ -353,7 +354,7 @@ class _ServicesState extends State<Services> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Card(update: getValue()),
+                Card(update: getValue().toString()),
               ],
             ))
       ],
@@ -383,55 +384,49 @@ class _CardState extends State<Card> {
     }
   }
 
-  Future getNumber() async {
-    final snapshot = await refQ.child("amount").get();
-    final i;
-    if (snapshot.exists) {
-      i = int.parse(snapshot.value.toString());
-    } else {
-      i = 0;
-    }
-    return i;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(left: 10, right: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.0),
-        color: Colors.grey[100],
+        color: Colors.white,
       ),
       child: Row(
         children: [
-          const Padding(padding: EdgeInsets.only(left: 10)),
-          for (int i = 1; i <= int.parse(widget.update); i++)
-            SizedBox(
-              width: 125,
-              height: 175,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ClipRRect(
-                      borderRadius: BorderRadius.circular(50),
-                      child: Image.asset(getImage())),
-                  const Text(
-                    'Title',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
+          for (int i = 1; i <= 3; i++)
+            Row(
+              children: [
+
+            const Padding(padding: EdgeInsets.only(left: 10)),
+              SizedBox(
+                width: 125,
+                height: 175,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: Image.asset(getImage())),
+                    const Text(
+                      'Title',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                      ),
                     ),
-                  ),
-                  const Text(
-                    'id',
-                    style: TextStyle(
-                      fontSize: 14,
+                    const Text(
+                      'id',
+                      style: TextStyle(
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          const Padding(padding: EdgeInsets.only(left: 10)),
+            const Padding(padding: EdgeInsets.only(left: 10)),
+              ],
+            )
         ],
       ),
     );
@@ -527,7 +522,7 @@ class _TrackingState extends State<Tracking> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                widget.info[6].isNotEmpty ? widget.info[6] : "Loading...",
+                widget.info[6],
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
