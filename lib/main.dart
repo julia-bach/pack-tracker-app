@@ -6,6 +6,7 @@ import 'dart:math';
 
 FirebaseDatabase database = FirebaseDatabase.instance;
 DatabaseReference ref = FirebaseDatabase.instance.ref("trackings");
+DatabaseReference refQ = FirebaseDatabase.instance.ref("quantity");
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -309,12 +310,18 @@ class Services extends StatefulWidget {
 }
 
 class _ServicesState extends State<Services> {
+  String getValue() {
+    final referencer = refQ.child("amount").get();
+    final data = referencer.toString();
+    return data;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
-        Padding(padding: EdgeInsets.only(top: 40)),
-        Row(
+        const Padding(padding: EdgeInsets.only(top: 40)),
+        const Row(
           children: [
             Padding(padding: EdgeInsets.only(left: 20)),
             Text(
@@ -341,20 +348,14 @@ class _ServicesState extends State<Services> {
             Padding(padding: EdgeInsets.only(right: 20)),
           ],
         ),
-        Padding(padding: EdgeInsets.only(bottom: 20)),
+        const Padding(padding: EdgeInsets.only(bottom: 20)),
         SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              Padding(padding: EdgeInsets.only(left: 10)),
-              Card(image: 'truck'),
-              Card(image: 'package'),
-              Card(image: 'truck'),
-              Card(image: 'package'),
-              Padding(padding: EdgeInsets.only(right: 10))
-            ],
-          ),
-        )
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Card(update: getValue()),
+              ],
+            ))
       ],
     );
   }
@@ -363,13 +364,36 @@ class _ServicesState extends State<Services> {
 // CARDS FOR THE MY SERVICE AREA
 
 class Card extends StatefulWidget {
-  final String image;
-  const Card({super.key, required this.image});
+  final String update;
+  const Card({super.key, required this.update});
   @override
   State<Card> createState() => _CardState();
 }
 
 class _CardState extends State<Card> {
+  String getImage() {
+    if (widget.update == '2') {
+      return 'assets/images/in_transit.png';
+    } else if (widget.update == '3') {
+      return 'assets/images/in_process.png';
+    } else if (widget.update == '4') {
+      return 'assets/images/received.png';
+    } else {
+      return 'assets/images/sent.png';
+    }
+  }
+
+  Future getNumber() async {
+    final snapshot = await refQ.child("amount").get();
+    final i;
+    if (snapshot.exists) {
+      i = int.parse(snapshot.value.toString());
+    } else {
+      i = 0;
+    }
+    return i;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -378,41 +402,37 @@ class _CardState extends State<Card> {
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.grey[100],
       ),
-      child: SizedBox(
-        width: 125,
-        height: 175,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: Image.asset('assets/images/${widget.image}.png')),
-            if (widget.image == 'truck')
-              const Text('Title',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                  )),
-            if (widget.image == 'truck')
-              const Text('id',
-                  style: TextStyle(
-                    fontSize: 14,
-                  )),
-            if (widget.image == 'package')
-              const Text('Title',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                  )),
-            if (widget.image == 'package')
-              const Text(
-                'id',
-                style: TextStyle(
-                  fontSize: 14,
-                ),
+      child: Row(
+        children: [
+          const Padding(padding: EdgeInsets.only(left: 10)),
+          for (int i = 1; i <= int.parse(widget.update); i++)
+            SizedBox(
+              width: 125,
+              height: 175,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ClipRRect(
+                      borderRadius: BorderRadius.circular(50),
+                      child: Image.asset(getImage())),
+                  const Text(
+                    'Title',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                    ),
+                  ),
+                  const Text(
+                    'id',
+                    style: TextStyle(
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-          ],
-        ),
+            ),
+          const Padding(padding: EdgeInsets.only(left: 10)),
+        ],
       ),
     );
   }
@@ -488,6 +508,10 @@ class Tracking extends StatefulWidget {
 
 class _TrackingState extends State<Tracking> {
   Future removeFromDB(String id) async {
+    final excluder = await refQ.child("amount").get();
+    await refQ.set({
+      "amount": int.parse(excluder.value.toString()) - 1,
+    });
     await ref.child(id).remove();
   }
 
@@ -1034,6 +1058,17 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
       "weight": weight,
       "_updateCounter": _updateCounter,
     });
+    final leveler = await refQ.child("amount").get();
+    if (leveler.exists) {
+      int amount = int.parse(leveler.value.toString());
+      await refQ.set({
+        "amount": amount + 1,
+      });
+    } else {
+      await refQ.set({
+        "amount": 1,
+      });
+    }
   }
 
   @override
@@ -1201,9 +1236,8 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       ElevatedButton(
                         onPressed: () {
                           _updateCounter = 1;
-                          // var rng = Random();
-                          // id = rng.nextInt(900000) + 100000;
-                          id = 2;
+                          var rng = Random();
+                          id = rng.nextInt(900000) + 100000;
                           title = _controllerTitle.text;
                           cost = _controllerCost.text;
                           weight = _controllerWeight.text;
@@ -1252,6 +1286,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                           } else {
                             createTrack(id);
                             showDialog(
+                              barrierDismissible: false,
                               context: context,
                               builder: (context) => AlertDialog(
                                 backgroundColor: Colors.grey[200],
