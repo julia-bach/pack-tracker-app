@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "271103187382",
+    "project_id": "pack-tracker-dev-mobile",
+    "storage_bucket": "pack-tracker-dev-mobile.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:271103187382:android:49da3f5858307738d08917",
+        "android_client_info": {
+          "package_name": "com.example.trakking_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjpRGmOyVnRGPuQwJRtVRO_Jh1hLyr8SU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
