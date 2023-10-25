@@ -3,8 +3,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 FirebaseFirestore db = FirebaseFirestore.instance;
+bool listen = false;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -156,10 +158,51 @@ class _FindPackageState extends State<FindPackage> {
   Map<String, dynamic> data = {};
   String trackNumber = '';
   Future fetchData(String id) async {
+    if (id == "") {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.grey[200],
+          title: const Text(
+            'Shipment not found!',
+            style: TextStyle(
+                color: Colors.deepPurple,
+                fontSize: 24,
+                fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: TextButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const HomePage()));
+            },
+            style: ButtonStyle(
+              shape: MaterialStatePropertyAll(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              backgroundColor: MaterialStatePropertyAll(Colors.grey[300]),
+            ),
+            child: Text("Go back",
+                style: TextStyle(
+                  color: Colors.deepPurple[400],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.3,
+                )),
+          ),
+        ),
+      );
+    }
     final docRef = db.collection("trackings").doc(id);
     await docRef.get().then((DocumentSnapshot doc) {
       if (doc.exists) {
         data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          listen = true;
+        });
         Navigator.push(
             context,
             MaterialPageRoute(
@@ -360,46 +403,37 @@ class Card extends StatefulWidget {
 }
 
 class _CardState extends State<Card> {
-  int amount = 0;
   var ids = [];
   var titles = [];
   var updates = [];
-
-  @override
-  void initState() {
-    super.initState();
-    getDbData();
-  }
-
-  Future getDbData() async {
-    await db.collection("tracking").get().then((querySnapshot) {
-      for (var doc in querySnapshot.docs) {
-        ids.add(doc.id);
-        titles.add(doc.data()["title"]);
-        updates.add(doc.data()["updateCounter"]);
-        setState(() {
-          amount++;
-        });
-      }
-    });
-  }
-
+  int amount = 0;
   String getImage(int progress) {
     if (progress == 2) {
       return "assets/images/in_transit.png";
     }
     if (progress == 3) {
-      return "assets/images/in_process.png";
-    }
-    if (progress == 4) {
       return "assets/images/received.png";
     } else {
       return "assets/images/sent.png";
     }
   }
 
+  Future getDbData() async {
+    final docRef = db.collection("trackings");
+    docRef.snapshots().listen((event) {
+      for (var item in event.docs) {
+        final data = item.data() as Map<String, dynamic>;
+        ids.add(item.id);
+        titles.add(data["title"]);
+        updates.add(data["updateCounter"]);
+        amount++;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    getDbData();
     return Container(
       margin: const EdgeInsets.only(left: 10, right: 10),
       decoration: BoxDecoration(
@@ -420,7 +454,7 @@ class _CardState extends State<Card> {
                     children: [
                       ClipRRect(
                           borderRadius: BorderRadius.circular(50),
-                          child: Image.asset(getImage(int.parse(updates[i])))),
+                          child: Image.asset(getImage(updates[i]))),
                       Text(
                         titles[i],
                         style: const TextStyle(
@@ -473,7 +507,11 @@ class _PackagePageState extends State<PackagePage> {
             padding: const EdgeInsets.only(left: 0),
             child: IconButton(
               onPressed: () {
-                Navigator.pop(context);
+                setState(() {
+                  listen = false;
+                });
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const HomePage()));
               },
               icon: const Icon(Icons.arrow_back_rounded),
               tooltip: 'Go back to the homepage',
@@ -579,8 +617,10 @@ class _TrackingState extends State<Tracking> {
                           IconButton(
                             onPressed: () {
                               String id = widget.id;
+                              setState(() {
+                                listen = false;
+                              });
                               deleteById(id);
-                              Navigator.pop(context);
                               showDialog(
                                 barrierDismissible: false,
                                 context: context,
@@ -694,10 +734,7 @@ class _SentFromState extends State<SentFrom> {
                       height: 2)),
             ],
           ),
-          const Icon(
-            Icons.markunread_mailbox_rounded,
-            color: Colors.white,
-          ),
+          const Icon(Icons.markunread_mailbox_rounded, color: Colors.white),
         ],
       ),
     );
@@ -825,7 +862,7 @@ class _HistoryState extends State<History> {
             id: widget.id,
             info: widget.info,
           ),
-          Logs(id: widget.id, info: widget.info),
+          Logs(id: widget.id, info: widget.info)
         ],
       ),
     );
@@ -878,7 +915,7 @@ class _TitleHState extends State<TitleH> {
                   letterSpacing: 1.2)),
           Row(
             children: [
-              evaluate < 4
+              evaluate < 2
                   ? TextButton(
                       onPressed: () {
                         setValue(widget.id, widget.info);
@@ -921,25 +958,30 @@ class _LogsState extends State<Logs> {
     "In transit - Mandatory stop",
     "Received - Recipient city"
   ];
-  var places = [];
-  Future changeQuantity() async {
-    final docRef = db.collection("trackings").doc(widget.id);
-    docRef.snapshots().listen((event) {
-      final data = event.data() as Map<String, dynamic>;
-      setState(() {
-        evaluate = data["updateCounter"];
-      });
-    });
+  var time = ["03:21AM", "02:47AM", "12:38PM"];
+  String getPlace(int i) {
+    if (i == evaluate - 1) {
+      return widget.info["to"];
+    } else if (i == evaluate - 2) {
+      return widget.info["and"];
+    } else {
+      return widget.info["from"];
+    }
   }
 
-  Future getText() async {
-    final docRef = db.collection("trackings").doc(widget.id);
-    docRef.get().then((DocumentSnapshot doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      places.add(data["from"]);
-      places.add(data["and"]);
-      places.add(data["to"]);
-    });
+  Future listenCounter(bool listen) async {
+    if (!listen) {
+    } else {
+      final docRef = db.collection("trackings").doc(widget.id);
+      await docRef.get().then((DocumentSnapshot doc) {
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          setState(() {
+            evaluate = data["updateCounter"];
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -948,16 +990,16 @@ class _LogsState extends State<Logs> {
     setState(() {
       evaluate = widget.info["updateCounter"];
     });
-    getText();
   }
 
   @override
   Widget build(BuildContext context) {
+    listenCounter(listen);
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: Column(
         children: [
-          for (int i = 0; i < evaluate; i++)
+          for (int i = evaluate - 1; i >= 0; i--)
             Column(
               children: [
                 Row(
@@ -970,21 +1012,22 @@ class _LogsState extends State<Logs> {
                           decoration: BoxDecoration(
                             borderRadius:
                                 const BorderRadius.all(Radius.circular(50)),
-                            color:
-                                i == 0 ? Colors.deepPurple : Colors.grey[300],
+                            color: i == evaluate - 1
+                                ? Colors.deepPurple
+                                : Colors.grey[300],
                           ),
                           padding: const EdgeInsets.all(5),
                           child: Icon(
                             Icons.upcoming,
-                            color: i == 0 ? Colors.white : Colors.grey[700],
+                            color: i == evaluate - 1
+                                ? Colors.white
+                                : Colors.grey[700],
                             size: 40,
                           ),
                         ),
                         Center(
                           child: Container(
-                            color: i == evaluate - 1
-                                ? Colors.white
-                                : Colors.grey[300],
+                            color: i == 0 ? Colors.white : Colors.grey[300],
                             height: 20,
                             width: 3,
                           ),
@@ -1002,7 +1045,7 @@ class _LogsState extends State<Logs> {
                               height: 1.5),
                         ),
                         Text(
-                          places[i],
+                          getPlace(i),
                           style: const TextStyle(
                               fontWeight: FontWeight.w400,
                               fontSize: 13,
@@ -1020,9 +1063,9 @@ class _LogsState extends State<Logs> {
                     ),
                     Column(
                       children: [
-                        const Text(
-                          "EHE",
-                          style: TextStyle(
+                        Text(
+                          time[i],
+                          style: const TextStyle(
                               fontWeight: FontWeight.w400,
                               fontSize: 13,
                               wordSpacing: 2,
