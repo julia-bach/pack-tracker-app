@@ -57,6 +57,7 @@ class DefaultFirebaseOptions {
     appId: '1:271103187382:android:49da3f5858307738d08917',
     messagingSenderId: '271103187382',
     projectId: 'pack-tracker-dev-mobile',
+    databaseURL: 'https://pack-tracker-dev-mobile-default-rtdb.firebaseio.com',
     storageBucket: 'pack-tracker-dev-mobile.appspot.com',
   );
 }

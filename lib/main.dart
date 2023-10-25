@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
-FirebaseDatabase database = FirebaseDatabase.instance;
-DatabaseReference ref = FirebaseDatabase.instance.ref("trackings");
-DatabaseReference refQ = FirebaseDatabase.instance.ref("quantity");
+FirebaseFirestore db = FirebaseFirestore.instance;
+bool listen = false;
 
-Future main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
+
   runApp(const MyApp());
 }
 
@@ -156,20 +155,13 @@ class FindPackage extends StatefulWidget {
 
 class _FindPackageState extends State<FindPackage> {
   final controlling = TextEditingController();
-  final List<String> data = [];
+  Map<String, dynamic> data = {};
   String trackNumber = '';
   Future fetchData(String id) async {
-    final snapshot = await ref.child(id).get();
-    if (snapshot.exists) {
-      for (DataSnapshot snap in snapshot.children) {
-        data.add(snap.value.toString());
-      }
-      print(
-          "_----------------_______________--------------------________________--------------------____________");
-      print(data);
-    } else {
+    if (id == "") {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.grey[200],
           title: const Text(
@@ -203,8 +195,58 @@ class _FindPackageState extends State<FindPackage> {
           ),
         ),
       );
-      print('No data available.');
     }
+    final docRef = db.collection("trackings").doc(id);
+    await docRef.get().then((DocumentSnapshot doc) {
+      if (doc.exists) {
+        data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          listen = true;
+        });
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    PackagePage(id: trackNumber, info: data)));
+      } else {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: Colors.grey[200],
+            title: const Text(
+              'Shipment not found!',
+              style: TextStyle(
+                  color: Colors.deepPurple,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            content: TextButton(
+              onPressed: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const HomePage()));
+              },
+              style: ButtonStyle(
+                shape: MaterialStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                backgroundColor: MaterialStatePropertyAll(Colors.grey[300]),
+              ),
+              child: Text("Go back",
+                  style: TextStyle(
+                    color: Colors.deepPurple[400],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.3,
+                  )),
+            ),
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -269,11 +311,6 @@ class _FindPackageState extends State<FindPackage> {
                         trackNumber = controlling.text;
                         fetchData(trackNumber);
                         controlling.clear();
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    PackagePage(id: trackNumber, info: data)));
                       },
                       icon: const Icon(
                         Icons.send_rounded,
@@ -310,18 +347,12 @@ class Services extends StatefulWidget {
 }
 
 class _ServicesState extends State<Services> {
-  String getValue() {
-    final referencer = refQ.child("amount").get();
-    final data = referencer.toString();
-    return data;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       children: [
-        const Padding(padding: EdgeInsets.only(top: 40)),
-        const Row(
+        Padding(padding: EdgeInsets.only(top: 40)),
+        Row(
           children: [
             Padding(padding: EdgeInsets.only(left: 20)),
             Text(
@@ -348,12 +379,12 @@ class _ServicesState extends State<Services> {
             Padding(padding: EdgeInsets.only(right: 20)),
           ],
         ),
-        const Padding(padding: EdgeInsets.only(bottom: 20)),
+        Padding(padding: EdgeInsets.only(bottom: 20)),
         SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Card(update: getValue()),
+                Card(),
               ],
             ))
       ],
@@ -364,74 +395,85 @@ class _ServicesState extends State<Services> {
 // CARDS FOR THE MY SERVICE AREA
 
 class Card extends StatefulWidget {
-  final String update;
-  const Card({super.key, required this.update});
+  const Card({
+    super.key,
+  });
   @override
   State<Card> createState() => _CardState();
 }
 
 class _CardState extends State<Card> {
-  String getImage() {
-    if (widget.update == '2') {
-      return 'assets/images/in_transit.png';
-    } else if (widget.update == '3') {
-      return 'assets/images/in_process.png';
-    } else if (widget.update == '4') {
-      return 'assets/images/received.png';
+  var ids = [];
+  var titles = [];
+  var updates = [];
+  int amount = 0;
+  String getImage(int progress) {
+    if (progress == 2) {
+      return "assets/images/in_transit.png";
+    }
+    if (progress == 3) {
+      return "assets/images/received.png";
     } else {
-      return 'assets/images/sent.png';
+      return "assets/images/sent.png";
     }
   }
 
-  Future getNumber() async {
-    final snapshot = await refQ.child("amount").get();
-    final i;
-    if (snapshot.exists) {
-      i = int.parse(snapshot.value.toString());
-    } else {
-      i = 0;
-    }
-    return i;
+  Future getDbData() async {
+    final docRef = db.collection("trackings");
+    docRef.snapshots().listen((event) {
+      for (var item in event.docs) {
+        final data = item.data() as Map<String, dynamic>;
+        ids.add(item.id);
+        titles.add(data["title"]);
+        updates.add(data["updateCounter"]);
+        amount++;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    getDbData();
     return Container(
       margin: const EdgeInsets.only(left: 10, right: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.0),
-        color: Colors.grey[100],
+        color: Colors.white,
       ),
       child: Row(
         children: [
-          const Padding(padding: EdgeInsets.only(left: 10)),
-          for (int i = 1; i <= int.parse(widget.update); i++)
-            SizedBox(
-              width: 125,
-              height: 175,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ClipRRect(
-                      borderRadius: BorderRadius.circular(50),
-                      child: Image.asset(getImage())),
-                  const Text(
-                    'Title',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                    ),
+          for (int i = 0; i < amount; i++)
+            Row(
+              children: [
+                const Padding(padding: EdgeInsets.only(left: 10)),
+                SizedBox(
+                  width: 125,
+                  height: 175,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: Image.asset(getImage(updates[i]))),
+                      Text(
+                        titles[i],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
+                      ),
+                      Text(
+                        ids[i],
+                        style: const TextStyle(
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Text(
-                    'id',
-                    style: TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const Padding(padding: EdgeInsets.only(left: 10)),
+                ),
+                const Padding(padding: EdgeInsets.only(left: 10)),
+              ],
+            )
         ],
       ),
     );
@@ -443,7 +485,7 @@ class _CardState extends State<Card> {
 
 class PackagePage extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const PackagePage({super.key, required this.id, required this.info});
 
   @override
@@ -465,7 +507,11 @@ class _PackagePageState extends State<PackagePage> {
             padding: const EdgeInsets.only(left: 0),
             child: IconButton(
               onPressed: () {
-                Navigator.pop(context);
+                setState(() {
+                  listen = false;
+                });
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const HomePage()));
               },
               icon: const Icon(Icons.arrow_back_rounded),
               tooltip: 'Go back to the homepage',
@@ -499,7 +545,7 @@ class _PackagePageState extends State<PackagePage> {
 
 class Tracking extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const Tracking({super.key, required this.id, required this.info});
 
   @override
@@ -507,12 +553,14 @@ class Tracking extends StatefulWidget {
 }
 
 class _TrackingState extends State<Tracking> {
-  Future removeFromDB(String id) async {
-    final excluder = await refQ.child("amount").get();
-    await refQ.set({
-      "amount": int.parse(excluder.value.toString()) - 1,
+  Future deleteById(String id) async {
+    db.collection("quantity").doc("amount").get().then((DocumentSnapshot doc) {
+      db.collection("quantity").doc("amount").set({
+        "total": doc["total"] - 1,
+      });
     });
-    await ref.child(id).remove();
+
+    await db.collection("trackings").doc(id).delete();
   }
 
   @override
@@ -527,7 +575,7 @@ class _TrackingState extends State<Tracking> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                widget.info[6].isNotEmpty ? widget.info[6] : "Loading...",
+                widget.info["title"],
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
@@ -569,8 +617,10 @@ class _TrackingState extends State<Tracking> {
                           IconButton(
                             onPressed: () {
                               String id = widget.id;
-                              removeFromDB(id);
-                              Navigator.pop(context);
+                              setState(() {
+                                listen = false;
+                              });
+                              deleteById(id);
                               showDialog(
                                 barrierDismissible: false,
                                 context: context,
@@ -644,7 +694,7 @@ class _TrackingState extends State<Tracking> {
 
 class SentFrom extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const SentFrom({super.key, required this.id, required this.info});
 
   @override
@@ -668,7 +718,7 @@ class _SentFromState extends State<SentFrom> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.info[1].isNotEmpty ? widget.info[1] : "Loading...",
+                widget.info["from"],
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -676,7 +726,7 @@ class _SentFromState extends State<SentFrom> {
                     letterSpacing: 1.2,
                     height: 1.5),
               ),
-              Text(widget.info[5].isNotEmpty ? widget.info[5] : "Loading...",
+              Text(widget.info["residential"],
                   style: TextStyle(
                       color: Colors.grey[300],
                       fontSize: 13,
@@ -684,10 +734,7 @@ class _SentFromState extends State<SentFrom> {
                       height: 2)),
             ],
           ),
-          const Icon(
-            Icons.markunread_mailbox_rounded,
-            color: Colors.white,
-          ),
+          const Icon(Icons.markunread_mailbox_rounded, color: Colors.white),
         ],
       ),
     );
@@ -698,7 +745,7 @@ class _SentFromState extends State<SentFrom> {
 
 class Fee extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const Fee({super.key, required this.id, required this.info});
 
   @override
@@ -722,7 +769,7 @@ class _FeeState extends State<Fee> {
           const Text("-",
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-          Text(widget.info[4].isNotEmpty ? widget.info[4] : "Loading...",
+          Text(widget.info["cost"],
               style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w500)),
           const Padding(padding: EdgeInsets.only(right: 7.5, left: 7.5)),
@@ -742,7 +789,7 @@ class _FeeState extends State<Fee> {
 
 class CurrentAt extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const CurrentAt({super.key, required this.id, required this.info});
 
   @override
@@ -764,7 +811,7 @@ class _CurrentAtState extends State<CurrentAt> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
-            widget.info[2].isNotEmpty ? widget.info[2] : "Loading...",
+            widget.info["to"],
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -778,7 +825,7 @@ class _CurrentAtState extends State<CurrentAt> {
                   fontSize: 13,
                   fontWeight: FontWeight.w300,
                   height: 2)),
-          Text(widget.info[7].isNotEmpty ? widget.info[7] : "Loading...",
+          Text(widget.info["weight"],
               style: TextStyle(
                   color: Colors.grey[300],
                   fontSize: 13,
@@ -793,7 +840,7 @@ class _CurrentAtState extends State<CurrentAt> {
 // HISTORY SECTION
 class History extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const History({super.key, required this.id, required this.info});
 
   @override
@@ -811,8 +858,11 @@ class _HistoryState extends State<History> {
       ),
       child: Column(
         children: [
-          const TitleH(),
-          Logs(id: widget.id),
+          TitleH(
+            id: widget.id,
+            info: widget.info,
+          ),
+          Logs(id: widget.id, info: widget.info)
         ],
       ),
     );
@@ -821,18 +871,33 @@ class _HistoryState extends State<History> {
 
 // HISTORY TITLE
 class TitleH extends StatefulWidget {
-  const TitleH({super.key});
-
+  final String id;
+  final Map<String, dynamic> info;
+  const TitleH({super.key, required this.id, required this.info});
   @override
   State<TitleH> createState() => _TitleHState();
 }
 
 class _TitleHState extends State<TitleH> {
-  int _updateCounter = 1;
+  int evaluate = 1;
+  Future setValue(String id, Map<String, dynamic> data) async {
+    final docRef = db.collection("trackings").doc(id);
+    await docRef.get().then((DocumentSnapshot doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      docRef.set({
+        "updateCounter": data["updateCounter"] + 1,
+      }, SetOptions(merge: true));
+      setState(() {
+        evaluate = data["updateCounter"];
+      });
+    });
+  }
 
-  void increaseCounter() {
+  @override
+  void initState() {
+    super.initState();
     setState(() {
-      _updateCounter++;
+      evaluate = widget.info["updateCounter"];
     });
   }
 
@@ -850,10 +915,10 @@ class _TitleHState extends State<TitleH> {
                   letterSpacing: 1.2)),
           Row(
             children: [
-              _updateCounter <= 4
+              evaluate < 2
                   ? TextButton(
                       onPressed: () {
-                        increaseCounter();
+                        setValue(widget.id, widget.info);
                       },
                       style: const ButtonStyle(
                           foregroundColor: MaterialStatePropertyAll(
@@ -879,50 +944,62 @@ class _TitleHState extends State<TitleH> {
 
 class Logs extends StatefulWidget {
   final String id;
-  const Logs({super.key, required this.id});
+  final Map<String, dynamic> info;
+  const Logs({super.key, required this.id, required this.info});
 
   @override
   State<Logs> createState() => _LogsState();
 }
 
 class _LogsState extends State<Logs> {
-  List<List<List<String>>> info = [
-    [
-      ['settings', 'In process - Recipient city', 'Poznan, Poland', '12:00AM'],
-      [
-        'mode_of_travel_sharp',
-        'Transit - Sending city',
-        'Jakarta, Indonesia',
-        '10:00PM'
-      ],
-      ['upcoming', 'Sent from Sukabumi', 'Sukabumi, Indonesia', '08:00PM']
-    ],
-    [
-      [
-        'mode_of_travel_sharp',
-        'Transit - Sending city',
-        'Rio de Janeiro, Brazil',
-        '01:17AM'
-      ],
-      ['upcoming', 'Sent from São Paulo', 'São Paulo, Brazil', '02:45PM']
-    ],
-    [
-      ['where_to_vote', 'Received - Recipient city', 'Cairo, Egypt', '09:34AM'],
-      ['settings', 'In process - Recipient city', 'Cairo, Egypt', '02:01PM'],
-      [
-        'mode_of_travel_sharp',
-        'Transit - Mandatory stop',
-        'Paris, France',
-        '11:29AM'
-      ],
-    ]
+  int evaluate = 0;
+  var texts = [
+    "Sent from - Sending city",
+    "In transit - Mandatory stop",
+    "Received - Recipient city"
   ];
+  var time = ["03:21AM", "02:47AM", "12:38PM"];
+  String getPlace(int i) {
+    if (i == evaluate - 1) {
+      return widget.info["to"];
+    } else if (i == evaluate - 2) {
+      return widget.info["and"];
+    } else {
+      return widget.info["from"];
+    }
+  }
+
+  Future listenCounter(bool listen) async {
+    if (!listen) {
+    } else {
+      final docRef = db.collection("trackings").doc(widget.id);
+      await docRef.get().then((DocumentSnapshot doc) {
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          setState(() {
+            evaluate = data["updateCounter"];
+          });
+        }
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      evaluate = widget.info["updateCounter"];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    listenCounter(listen);
     return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
       child: Column(
         children: [
-          for (int i = 0; i < info[int.parse(widget.id)].length; i++)
+          for (int i = evaluate - 1; i >= 0; i--)
             Column(
               children: [
                 Row(
@@ -935,21 +1012,22 @@ class _LogsState extends State<Logs> {
                           decoration: BoxDecoration(
                             borderRadius:
                                 const BorderRadius.all(Radius.circular(50)),
-                            color:
-                                i == 0 ? Colors.deepPurple : Colors.grey[300],
+                            color: i == evaluate - 1
+                                ? Colors.deepPurple
+                                : Colors.grey[300],
                           ),
                           padding: const EdgeInsets.all(5),
                           child: Icon(
                             Icons.upcoming,
-                            color: i == 0 ? Colors.white : Colors.grey[700],
+                            color: i == evaluate - 1
+                                ? Colors.white
+                                : Colors.grey[700],
                             size: 40,
                           ),
                         ),
                         Center(
                           child: Container(
-                            color: i == info[int.parse(widget.id)].length - 1
-                                ? Colors.white
-                                : Colors.grey[300],
+                            color: i == 0 ? Colors.white : Colors.grey[300],
                             height: 20,
                             width: 3,
                           ),
@@ -959,7 +1037,7 @@ class _LogsState extends State<Logs> {
                     Column(
                       children: [
                         Text(
-                          info[int.parse(widget.id)][i][1],
+                          texts[i],
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -967,7 +1045,7 @@ class _LogsState extends State<Logs> {
                               height: 1.5),
                         ),
                         Text(
-                          info[int.parse(widget.id)][i][2],
+                          getPlace(i),
                           style: const TextStyle(
                               fontWeight: FontWeight.w400,
                               fontSize: 13,
@@ -986,7 +1064,7 @@ class _LogsState extends State<Logs> {
                     Column(
                       children: [
                         Text(
-                          info[int.parse(widget.id)][i][3],
+                          time[i],
                           style: const TextStyle(
                               fontWeight: FontWeight.w400,
                               fontSize: 13,
@@ -1035,7 +1113,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
   String residential = "";
   String cost = "";
   String weight = "";
-  int _updateCounter = 0;
+  int updateCounter = 0;
   TextEditingController _controllerTitle = TextEditingController();
   TextEditingController _controllerCity1 = TextEditingController();
   TextEditingController _controllerCountry1 = TextEditingController();
@@ -1047,28 +1125,30 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
   TextEditingController _controllerCost = TextEditingController();
   TextEditingController _controllerWeight = TextEditingController();
 
-  Future createTrack(int id) async {
-    await ref.child("$id").set({
+  Future sendData(int id) async {
+    await db.collection("trackings").doc("$id").set({
       "title": title,
-      "From": "$city1, $country1",
-      "And": "$city3, $country3",
-      "To": "$city2, $country2",
-      "residential": residential,
+      "from": "$city1, $country1",
+      "to": "$city2, $country2",
+      "and": "$city3, $country3",
       "cost": cost,
       "weight": weight,
-      "_updateCounter": _updateCounter,
+      "residential": residential,
+      "updateCounter": updateCounter,
     });
-    final leveler = await refQ.child("amount").get();
-    if (leveler.exists) {
-      int amount = int.parse(leveler.value.toString());
-      await refQ.set({
-        "amount": amount + 1,
-      });
-    } else {
-      await refQ.set({
-        "amount": 1,
-      });
-    }
+    final docRef = db.collection("quantity").doc("amount");
+    docRef.get().then((DocumentSnapshot doc) {
+      if (!doc.exists) {
+        db.collection("quantity").doc("amount").set({
+          "total": 1,
+        });
+      } else {
+        final data = doc.data() as Map<String, dynamic>;
+        db.collection("quantity").doc("amount").set({
+          "total": data["total"] + 1,
+        });
+      }
+    });
   }
 
   @override
@@ -1235,7 +1315,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          _updateCounter = 1;
+                          updateCounter = 1;
                           var rng = Random();
                           id = rng.nextInt(900000) + 100000;
                           title = _controllerTitle.text;
@@ -1284,7 +1364,6 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                               ),
                             );
                           } else {
-                            createTrack(id);
                             showDialog(
                               barrierDismissible: false,
                               context: context,
@@ -1305,6 +1384,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                                       foregroundColor: MaterialStatePropertyAll(
                                           Colors.white)),
                                   onPressed: () {
+                                    sendData(id);
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
