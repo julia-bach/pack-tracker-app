@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "271103187382",
+    "firebase_url": "https://pack-tracker-dev-mobile-default-rtdb.firebaseio.com",
     "project_id": "pack-tracker-dev-mobile",
     "storage_bucket": "pack-tracker-dev-mobile.appspot.com"
   },

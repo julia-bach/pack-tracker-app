@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 
-FirebaseDatabase database = FirebaseDatabase.instance;
-DatabaseReference ref = FirebaseDatabase.instance.ref("trackings");
-DatabaseReference refQ = FirebaseDatabase.instance.ref("quantity");
+FirebaseFirestore db = FirebaseFirestore.instance;
 
-Future main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
+
   runApp(const MyApp());
 }
 
@@ -156,56 +153,57 @@ class FindPackage extends StatefulWidget {
 
 class _FindPackageState extends State<FindPackage> {
   final controlling = TextEditingController();
-  final List<String> data = [];
+  Map<String, dynamic> data = {};
   String trackNumber = '';
   Future fetchData(String id) async {
-    final snapshot = await ref.child(id).get();
-    if (snapshot.exists) {
-      for (DataSnapshot snap in snapshot.children) {
-        data.add(snap.value.toString());
-      }
-      print(
-          "_----------------_______________--------------------________________--------------------____________");
-      print(data);
-    } else {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: Colors.grey[200],
-          title: const Text(
-            'Shipment not found!',
-            style: TextStyle(
-                color: Colors.deepPurple,
-                fontSize: 24,
-                fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          content: TextButton(
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const HomePage()));
-            },
-            style: ButtonStyle(
-              shape: MaterialStatePropertyAll(
-                RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              backgroundColor: MaterialStatePropertyAll(Colors.grey[300]),
+    final docRef = db.collection("trackings").doc(id);
+    await docRef.get().then((DocumentSnapshot doc) {
+      if (doc.exists) {
+        data = doc.data() as Map<String, dynamic>;
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    PackagePage(id: trackNumber, info: data)));
+      } else {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: Colors.grey[200],
+            title: const Text(
+              'Shipment not found!',
+              style: TextStyle(
+                  color: Colors.deepPurple,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-            child: Text("Go back",
-                style: TextStyle(
-                  color: Colors.deepPurple[400],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.3,
-                )),
+            content: TextButton(
+              onPressed: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const HomePage()));
+              },
+              style: ButtonStyle(
+                shape: MaterialStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                backgroundColor: MaterialStatePropertyAll(Colors.grey[300]),
+              ),
+              child: Text("Go back",
+                  style: TextStyle(
+                    color: Colors.deepPurple[400],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.3,
+                  )),
+            ),
           ),
-        ),
-      );
-      print('No data available.');
-    }
+        );
+      }
+    });
   }
 
   @override
@@ -270,11 +268,6 @@ class _FindPackageState extends State<FindPackage> {
                         trackNumber = controlling.text;
                         fetchData(trackNumber);
                         controlling.clear();
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    PackagePage(id: trackNumber, info: data)));
                       },
                       icon: const Icon(
                         Icons.send_rounded,
@@ -311,18 +304,12 @@ class Services extends StatefulWidget {
 }
 
 class _ServicesState extends State<Services> {
-  Future<String> getValue() async {
-    final referencer = await refQ.child("amount").get();
-    final data = referencer.value.toString();
-    return data;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       children: [
-        const Padding(padding: EdgeInsets.only(top: 40)),
-        const Row(
+        Padding(padding: EdgeInsets.only(top: 40)),
+        Row(
           children: [
             Padding(padding: EdgeInsets.only(left: 20)),
             Text(
@@ -349,12 +336,12 @@ class _ServicesState extends State<Services> {
             Padding(padding: EdgeInsets.only(right: 20)),
           ],
         ),
-        const Padding(padding: EdgeInsets.only(bottom: 20)),
+        Padding(padding: EdgeInsets.only(bottom: 20)),
         SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Card(update: getValue().toString()),
+                Card(update: "3"),
               ],
             ))
       ],
@@ -397,34 +384,33 @@ class _CardState extends State<Card> {
           for (int i = 1; i <= 3; i++)
             Row(
               children: [
-
-            const Padding(padding: EdgeInsets.only(left: 10)),
-              SizedBox(
-                width: 125,
-                height: 175,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ClipRRect(
-                        borderRadius: BorderRadius.circular(50),
-                        child: Image.asset(getImage())),
-                    const Text(
-                      'Title',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
+                const Padding(padding: EdgeInsets.only(left: 10)),
+                SizedBox(
+                  width: 125,
+                  height: 175,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: Image.asset(getImage())),
+                      const Text(
+                        'Title',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
                       ),
-                    ),
-                    const Text(
-                      'id',
-                      style: TextStyle(
-                        fontSize: 14,
+                      const Text(
+                        'id',
+                        style: TextStyle(
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            const Padding(padding: EdgeInsets.only(left: 10)),
+                const Padding(padding: EdgeInsets.only(left: 10)),
               ],
             )
         ],
@@ -438,7 +424,7 @@ class _CardState extends State<Card> {
 
 class PackagePage extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const PackagePage({super.key, required this.id, required this.info});
 
   @override
@@ -494,7 +480,7 @@ class _PackagePageState extends State<PackagePage> {
 
 class Tracking extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const Tracking({super.key, required this.id, required this.info});
 
   @override
@@ -502,12 +488,14 @@ class Tracking extends StatefulWidget {
 }
 
 class _TrackingState extends State<Tracking> {
-  Future removeFromDB(String id) async {
-    final excluder = await refQ.child("amount").get();
-    await refQ.set({
-      "amount": int.parse(excluder.value.toString()) - 1,
+  Future deleteById(String id) async {
+    db.collection("quantity").doc("amount").get().then((DocumentSnapshot doc) {
+      db.collection("quantity").doc("amount").set({
+        "total": doc["total"] - 1,
+      });
     });
-    await ref.child(id).remove();
+
+    await db.collection("trackings").doc(id).delete();
   }
 
   @override
@@ -522,7 +510,7 @@ class _TrackingState extends State<Tracking> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                widget.info[6],
+                widget.info["title"],
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
@@ -564,7 +552,7 @@ class _TrackingState extends State<Tracking> {
                           IconButton(
                             onPressed: () {
                               String id = widget.id;
-                              removeFromDB(id);
+                              deleteById(id);
                               Navigator.pop(context);
                               showDialog(
                                 barrierDismissible: false,
@@ -639,7 +627,7 @@ class _TrackingState extends State<Tracking> {
 
 class SentFrom extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const SentFrom({super.key, required this.id, required this.info});
 
   @override
@@ -663,7 +651,7 @@ class _SentFromState extends State<SentFrom> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.info[1].isNotEmpty ? widget.info[1] : "Loading...",
+                widget.info["from"],
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -671,7 +659,7 @@ class _SentFromState extends State<SentFrom> {
                     letterSpacing: 1.2,
                     height: 1.5),
               ),
-              Text(widget.info[5].isNotEmpty ? widget.info[5] : "Loading...",
+              Text(widget.info["residential"],
                   style: TextStyle(
                       color: Colors.grey[300],
                       fontSize: 13,
@@ -693,7 +681,7 @@ class _SentFromState extends State<SentFrom> {
 
 class Fee extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const Fee({super.key, required this.id, required this.info});
 
   @override
@@ -717,7 +705,7 @@ class _FeeState extends State<Fee> {
           const Text("-",
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-          Text(widget.info[4].isNotEmpty ? widget.info[4] : "Loading...",
+          Text(widget.info["cost"],
               style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w500)),
           const Padding(padding: EdgeInsets.only(right: 7.5, left: 7.5)),
@@ -737,7 +725,7 @@ class _FeeState extends State<Fee> {
 
 class CurrentAt extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const CurrentAt({super.key, required this.id, required this.info});
 
   @override
@@ -759,7 +747,7 @@ class _CurrentAtState extends State<CurrentAt> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
-            widget.info[2].isNotEmpty ? widget.info[2] : "Loading...",
+            widget.info["to"],
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -773,7 +761,7 @@ class _CurrentAtState extends State<CurrentAt> {
                   fontSize: 13,
                   fontWeight: FontWeight.w300,
                   height: 2)),
-          Text(widget.info[7].isNotEmpty ? widget.info[7] : "Loading...",
+          Text(widget.info["weight"],
               style: TextStyle(
                   color: Colors.grey[300],
                   fontSize: 13,
@@ -788,7 +776,7 @@ class _CurrentAtState extends State<CurrentAt> {
 // HISTORY SECTION
 class History extends StatefulWidget {
   final String id;
-  final List<String> info;
+  final Map<String, dynamic> info;
   const History({super.key, required this.id, required this.info});
 
   @override
@@ -806,8 +794,11 @@ class _HistoryState extends State<History> {
       ),
       child: Column(
         children: [
-          const TitleH(),
-          Logs(id: widget.id),
+          TitleH(
+            id: widget.id,
+            info: widget.info,
+          ),
+          // Logs(id: widget.id, info: widget.info),
         ],
       ),
     );
@@ -816,18 +807,33 @@ class _HistoryState extends State<History> {
 
 // HISTORY TITLE
 class TitleH extends StatefulWidget {
-  const TitleH({super.key});
-
+  final String id;
+  final Map<String, dynamic> info;
+  const TitleH({super.key, required this.id, required this.info});
   @override
   State<TitleH> createState() => _TitleHState();
 }
 
 class _TitleHState extends State<TitleH> {
-  int _updateCounter = 1;
+  int evaluate = 1;
+  Future setValue(String id, Map<String, dynamic> data) async {
+    final docRef = db.collection("trackings").doc(id);
+    await docRef.get().then((DocumentSnapshot doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      docRef.set({
+        "updateCounter": data["updateCounter"] + 1,
+      }, SetOptions(merge: true));
+      setState(() {
+        evaluate = data["updateCounter"];
+      });
+    });
+  }
 
-  void increaseCounter() {
+  @override
+  void initState() {
+    super.initState();
     setState(() {
-      _updateCounter++;
+      evaluate = widget.info["updateCounter"];
     });
   }
 
@@ -845,10 +851,10 @@ class _TitleHState extends State<TitleH> {
                   letterSpacing: 1.2)),
           Row(
             children: [
-              _updateCounter <= 4
+              evaluate < 4
                   ? TextButton(
                       onPressed: () {
-                        increaseCounter();
+                        setValue(widget.id, widget.info);
                       },
                       style: const ButtonStyle(
                           foregroundColor: MaterialStatePropertyAll(
@@ -872,142 +878,153 @@ class _TitleHState extends State<TitleH> {
 
 // HISTORY LOGS
 
-class Logs extends StatefulWidget {
-  final String id;
-  const Logs({super.key, required this.id});
+// class Logs extends StatefulWidget {
+//   final String id;
+//   final Map<String, dynamic> info;
+//   const Logs({super.key, required this.id, required this.info});
 
-  @override
-  State<Logs> createState() => _LogsState();
-}
+//   @override
+//   State<Logs> createState() => _LogsState();
+// }
 
-class _LogsState extends State<Logs> {
-  List<List<List<String>>> info = [
-    [
-      ['settings', 'In process - Recipient city', 'Poznan, Poland', '12:00AM'],
-      [
-        'mode_of_travel_sharp',
-        'Transit - Sending city',
-        'Jakarta, Indonesia',
-        '10:00PM'
-      ],
-      ['upcoming', 'Sent from Sukabumi', 'Sukabumi, Indonesia', '08:00PM']
-    ],
-    [
-      [
-        'mode_of_travel_sharp',
-        'Transit - Sending city',
-        'Rio de Janeiro, Brazil',
-        '01:17AM'
-      ],
-      ['upcoming', 'Sent from São Paulo', 'São Paulo, Brazil', '02:45PM']
-    ],
-    [
-      ['where_to_vote', 'Received - Recipient city', 'Cairo, Egypt', '09:34AM'],
-      ['settings', 'In process - Recipient city', 'Cairo, Egypt', '02:01PM'],
-      [
-        'mode_of_travel_sharp',
-        'Transit - Mandatory stop',
-        'Paris, France',
-        '11:29AM'
-      ],
-    ]
-  ];
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          for (int i = 0; i < info[int.parse(widget.id)].length; i++)
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(50)),
-                            color:
-                                i == 0 ? Colors.deepPurple : Colors.grey[300],
-                          ),
-                          padding: const EdgeInsets.all(5),
-                          child: Icon(
-                            Icons.upcoming,
-                            color: i == 0 ? Colors.white : Colors.grey[700],
-                            size: 40,
-                          ),
-                        ),
-                        Center(
-                          child: Container(
-                            color: i == info[int.parse(widget.id)].length - 1
-                                ? Colors.white
-                                : Colors.grey[300],
-                            height: 20,
-                            width: 3,
-                          ),
-                        )
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          info[int.parse(widget.id)][i][1],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              wordSpacing: 2,
-                              height: 1.5),
-                        ),
-                        Text(
-                          info[int.parse(widget.id)][i][2],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontSize: 13,
-                              wordSpacing: 2,
-                              height: 1.5),
-                        ),
-                        Center(
-                          child: Container(
-                            color: Colors.white,
-                            height: 20,
-                            width: 3,
-                          ),
-                        )
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          info[int.parse(widget.id)][i][3],
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontSize: 13,
-                              wordSpacing: 2,
-                              height: 2),
-                          textAlign: TextAlign.end,
-                        ),
-                        Center(
-                          child: Container(
-                            color: Colors.white,
-                            height: 20,
-                            width: 3,
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                ),
-                // Padding(padding: EdgeInsets.only(bottom: 20))
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
+// class _LogsState extends State<Logs> {
+//   int evaluate = 0;
+//   Future changeQuantity() async {
+//     final docRef = db.collection("trackings").doc(widget.id);
+//     docRef.snapshots().listen((event) {
+//       final data = event.data() as Map<String, dynamic>;
+//       setState(() {
+//         evaluate = data["updateCounter"];
+//       });
+//     });
+//   }
+
+//   Future textDisplayer(int i) async {
+//     final docRef = db.collection("trackings").doc(widget.id);
+//     await docRef.get().then((DocumentSnapshot doc) {
+//       if (i == 1) {
+//         final data = doc.data() as Map<String, dynamic>;
+//         return 'Sent from - $data["from"]';
+//       } else {
+//         return " ELSE NÉ ";
+//       }
+//     });
+//   }
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     setState(() {
+//       evaluate = widget.info["updateCounter"];
+//     });
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return CustomScrollView(
+//       slivers: [
+//         SliverFillRemaining(
+//           hasScrollBody: false,
+//           child: Column(
+//             children: [
+//               for (int i = 0; i < evaluate; i++)
+//                 SizedBox(
+//                   height: 50,
+//                   child: Column(
+//                     children: [
+//                       Row(
+//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                         children: [
+//                           Column(
+//                             mainAxisAlignment: MainAxisAlignment.start,
+//                             children: [
+//                               Container(
+//                                 decoration: BoxDecoration(
+//                                   borderRadius: const BorderRadius.all(
+//                                       Radius.circular(50)),
+//                                   color: i == 0
+//                                       ? Colors.deepPurple
+//                                       : Colors.grey[300],
+//                                 ),
+//                                 padding: const EdgeInsets.all(5),
+//                                 child: Icon(
+//                                   Icons.upcoming,
+//                                   color:
+//                                       i == 0 ? Colors.white : Colors.grey[700],
+//                                   size: 40,
+//                                 ),
+//                               ),
+//                               Center(
+//                                 child: Container(
+//                                   color: i == evaluate - 1
+//                                       ? Colors.white
+//                                       : Colors.grey[300],
+//                                   height: 20,
+//                                   width: 3,
+//                                 ),
+//                               )
+//                             ],
+//                           ),
+//                           Column(
+//                             children: [
+//                               Text(
+//                                 textDisplayer(i).toString(),
+//                                 style: const TextStyle(
+//                                     fontWeight: FontWeight.bold,
+//                                     fontSize: 16,
+//                                     wordSpacing: 2,
+//                                     height: 1.5),
+//                               ),
+//                               const Text(
+//                                 "AHA",
+//                                 style: TextStyle(
+//                                     fontWeight: FontWeight.w400,
+//                                     fontSize: 13,
+//                                     wordSpacing: 2,
+//                                     height: 1.5),
+//                               ),
+//                               Center(
+//                                 child: Container(
+//                                   color: Colors.white,
+//                                   height: 20,
+//                                   width: 3,
+//                                 ),
+//                               )
+//                             ],
+//                           ),
+//                           Column(
+//                             children: [
+//                               const Text(
+//                                 "EHE",
+//                                 style: TextStyle(
+//                                     fontWeight: FontWeight.w400,
+//                                     fontSize: 13,
+//                                     wordSpacing: 2,
+//                                     height: 2),
+//                                 textAlign: TextAlign.end,
+//                               ),
+//                               Center(
+//                                 child: Container(
+//                                   color: Colors.white,
+//                                   height: 20,
+//                                   width: 3,
+//                                 ),
+//                               )
+//                             ],
+//                           ),
+//                         ],
+//                       ),
+//                       // Padding(padding: EdgeInsets.only(bottom: 20))
+//                     ],
+//                   ),
+//                 )
+//             ],
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 // ------------------------------------------ CREATE NEW TRACKING SCAFFOLD ----------------------------------------------------------
 
@@ -1030,7 +1047,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
   String residential = "";
   String cost = "";
   String weight = "";
-  int _updateCounter = 0;
+  int updateCounter = 0;
   TextEditingController _controllerTitle = TextEditingController();
   TextEditingController _controllerCity1 = TextEditingController();
   TextEditingController _controllerCountry1 = TextEditingController();
@@ -1042,28 +1059,30 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
   TextEditingController _controllerCost = TextEditingController();
   TextEditingController _controllerWeight = TextEditingController();
 
-  Future createTrack(int id) async {
-    await ref.child("$id").set({
+  Future sendData(int id) async {
+    await db.collection("trackings").doc("$id").set({
       "title": title,
-      "From": "$city1, $country1",
-      "And": "$city3, $country3",
-      "To": "$city2, $country2",
-      "residential": residential,
+      "from": "$city1, $country1",
+      "to": "$city2, $country2",
+      "and": "$city3, $country3",
       "cost": cost,
       "weight": weight,
-      "_updateCounter": _updateCounter,
+      "residential": residential,
+      "updateCounter": updateCounter,
     });
-    final leveler = await refQ.child("amount").get();
-    if (leveler.exists) {
-      int amount = int.parse(leveler.value.toString());
-      await refQ.set({
-        "amount": amount + 1,
-      });
-    } else {
-      await refQ.set({
-        "amount": 1,
-      });
-    }
+    final docRef = db.collection("quantity").doc("amount");
+    docRef.get().then((DocumentSnapshot doc) {
+      if (!doc.exists) {
+        db.collection("quantity").doc("amount").set({
+          "total": 1,
+        });
+      } else {
+        final data = doc.data() as Map<String, dynamic>;
+        db.collection("quantity").doc("amount").set({
+          "total": data["total"] + 1,
+        });
+      }
+    });
   }
 
   @override
@@ -1230,7 +1249,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          _updateCounter = 1;
+                          updateCounter = 1;
                           var rng = Random();
                           id = rng.nextInt(900000) + 100000;
                           title = _controllerTitle.text;
@@ -1279,7 +1298,6 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                               ),
                             );
                           } else {
-                            createTrack(id);
                             showDialog(
                               barrierDismissible: false,
                               context: context,
@@ -1300,6 +1318,7 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                                       foregroundColor: MaterialStatePropertyAll(
                                           Colors.white)),
                                   onPressed: () {
+                                    sendData(id);
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
