@@ -341,7 +341,7 @@ class _ServicesState extends State<Services> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Card(update: "3"),
+                Card(),
               ],
             ))
       ],
@@ -352,22 +352,49 @@ class _ServicesState extends State<Services> {
 // CARDS FOR THE MY SERVICE AREA
 
 class Card extends StatefulWidget {
-  final String update;
-  const Card({super.key, required this.update});
+  const Card({
+    super.key,
+  });
   @override
   State<Card> createState() => _CardState();
 }
 
 class _CardState extends State<Card> {
-  String getImage() {
-    if (widget.update == '2') {
-      return 'assets/images/in_transit.png';
-    } else if (widget.update == '3') {
-      return 'assets/images/in_process.png';
-    } else if (widget.update == '4') {
-      return 'assets/images/received.png';
+  int amount = 0;
+  var ids = [];
+  var titles = [];
+  var updates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    getDbData();
+  }
+
+  Future getDbData() async {
+    await db.collection("tracking").get().then((querySnapshot) {
+      for (var doc in querySnapshot.docs) {
+        ids.add(doc.id);
+        titles.add(doc.data()["title"]);
+        updates.add(doc.data()["updateCounter"]);
+        setState(() {
+          amount++;
+        });
+      }
+    });
+  }
+
+  String getImage(int progress) {
+    if (progress == 2) {
+      return "assets/images/in_transit.png";
+    }
+    if (progress == 3) {
+      return "assets/images/in_process.png";
+    }
+    if (progress == 4) {
+      return "assets/images/received.png";
     } else {
-      return 'assets/images/sent.png';
+      return "assets/images/sent.png";
     }
   }
 
@@ -381,7 +408,7 @@ class _CardState extends State<Card> {
       ),
       child: Row(
         children: [
-          for (int i = 1; i <= 3; i++)
+          for (int i = 0; i < amount; i++)
             Row(
               children: [
                 const Padding(padding: EdgeInsets.only(left: 10)),
@@ -393,17 +420,17 @@ class _CardState extends State<Card> {
                     children: [
                       ClipRRect(
                           borderRadius: BorderRadius.circular(50),
-                          child: Image.asset(getImage())),
-                      const Text(
-                        'Title',
-                        style: TextStyle(
+                          child: Image.asset(getImage(int.parse(updates[i])))),
+                      Text(
+                        titles[i],
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
                         ),
                       ),
-                      const Text(
-                        'id',
-                        style: TextStyle(
+                      Text(
+                        ids[i],
+                        style: const TextStyle(
                           fontSize: 14,
                         ),
                       ),
@@ -798,7 +825,7 @@ class _HistoryState extends State<History> {
             id: widget.id,
             info: widget.info,
           ),
-          // Logs(id: widget.id, info: widget.info),
+          Logs(id: widget.id, info: widget.info),
         ],
       ),
     );
@@ -878,153 +905,149 @@ class _TitleHState extends State<TitleH> {
 
 // HISTORY LOGS
 
-// class Logs extends StatefulWidget {
-//   final String id;
-//   final Map<String, dynamic> info;
-//   const Logs({super.key, required this.id, required this.info});
+class Logs extends StatefulWidget {
+  final String id;
+  final Map<String, dynamic> info;
+  const Logs({super.key, required this.id, required this.info});
 
-//   @override
-//   State<Logs> createState() => _LogsState();
-// }
+  @override
+  State<Logs> createState() => _LogsState();
+}
 
-// class _LogsState extends State<Logs> {
-//   int evaluate = 0;
-//   Future changeQuantity() async {
-//     final docRef = db.collection("trackings").doc(widget.id);
-//     docRef.snapshots().listen((event) {
-//       final data = event.data() as Map<String, dynamic>;
-//       setState(() {
-//         evaluate = data["updateCounter"];
-//       });
-//     });
-//   }
+class _LogsState extends State<Logs> {
+  int evaluate = 0;
+  var texts = [
+    "Sent from - Sending city",
+    "In transit - Mandatory stop",
+    "Received - Recipient city"
+  ];
+  var places = [];
+  Future changeQuantity() async {
+    final docRef = db.collection("trackings").doc(widget.id);
+    docRef.snapshots().listen((event) {
+      final data = event.data() as Map<String, dynamic>;
+      setState(() {
+        evaluate = data["updateCounter"];
+      });
+    });
+  }
 
-//   Future textDisplayer(int i) async {
-//     final docRef = db.collection("trackings").doc(widget.id);
-//     await docRef.get().then((DocumentSnapshot doc) {
-//       if (i == 1) {
-//         final data = doc.data() as Map<String, dynamic>;
-//         return 'Sent from - $data["from"]';
-//       } else {
-//         return " ELSE NÉ ";
-//       }
-//     });
-//   }
+  Future getText() async {
+    final docRef = db.collection("trackings").doc(widget.id);
+    docRef.get().then((DocumentSnapshot doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      places.add(data["from"]);
+      places.add(data["and"]);
+      places.add(data["to"]);
+    });
+  }
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     setState(() {
-//       evaluate = widget.info["updateCounter"];
-//     });
-//   }
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      evaluate = widget.info["updateCounter"];
+    });
+    getText();
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return CustomScrollView(
-//       slivers: [
-//         SliverFillRemaining(
-//           hasScrollBody: false,
-//           child: Column(
-//             children: [
-//               for (int i = 0; i < evaluate; i++)
-//                 SizedBox(
-//                   height: 50,
-//                   child: Column(
-//                     children: [
-//                       Row(
-//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                         children: [
-//                           Column(
-//                             mainAxisAlignment: MainAxisAlignment.start,
-//                             children: [
-//                               Container(
-//                                 decoration: BoxDecoration(
-//                                   borderRadius: const BorderRadius.all(
-//                                       Radius.circular(50)),
-//                                   color: i == 0
-//                                       ? Colors.deepPurple
-//                                       : Colors.grey[300],
-//                                 ),
-//                                 padding: const EdgeInsets.all(5),
-//                                 child: Icon(
-//                                   Icons.upcoming,
-//                                   color:
-//                                       i == 0 ? Colors.white : Colors.grey[700],
-//                                   size: 40,
-//                                 ),
-//                               ),
-//                               Center(
-//                                 child: Container(
-//                                   color: i == evaluate - 1
-//                                       ? Colors.white
-//                                       : Colors.grey[300],
-//                                   height: 20,
-//                                   width: 3,
-//                                 ),
-//                               )
-//                             ],
-//                           ),
-//                           Column(
-//                             children: [
-//                               Text(
-//                                 textDisplayer(i).toString(),
-//                                 style: const TextStyle(
-//                                     fontWeight: FontWeight.bold,
-//                                     fontSize: 16,
-//                                     wordSpacing: 2,
-//                                     height: 1.5),
-//                               ),
-//                               const Text(
-//                                 "AHA",
-//                                 style: TextStyle(
-//                                     fontWeight: FontWeight.w400,
-//                                     fontSize: 13,
-//                                     wordSpacing: 2,
-//                                     height: 1.5),
-//                               ),
-//                               Center(
-//                                 child: Container(
-//                                   color: Colors.white,
-//                                   height: 20,
-//                                   width: 3,
-//                                 ),
-//                               )
-//                             ],
-//                           ),
-//                           Column(
-//                             children: [
-//                               const Text(
-//                                 "EHE",
-//                                 style: TextStyle(
-//                                     fontWeight: FontWeight.w400,
-//                                     fontSize: 13,
-//                                     wordSpacing: 2,
-//                                     height: 2),
-//                                 textAlign: TextAlign.end,
-//                               ),
-//                               Center(
-//                                 child: Container(
-//                                   color: Colors.white,
-//                                   height: 20,
-//                                   width: 3,
-//                                 ),
-//                               )
-//                             ],
-//                           ),
-//                         ],
-//                       ),
-//                       // Padding(padding: EdgeInsets.only(bottom: 20))
-//                     ],
-//                   ),
-//                 )
-//             ],
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: Column(
+        children: [
+          for (int i = 0; i < evaluate; i++)
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(50)),
+                            color:
+                                i == 0 ? Colors.deepPurple : Colors.grey[300],
+                          ),
+                          padding: const EdgeInsets.all(5),
+                          child: Icon(
+                            Icons.upcoming,
+                            color: i == 0 ? Colors.white : Colors.grey[700],
+                            size: 40,
+                          ),
+                        ),
+                        Center(
+                          child: Container(
+                            color: i == evaluate - 1
+                                ? Colors.white
+                                : Colors.grey[300],
+                            height: 20,
+                            width: 3,
+                          ),
+                        )
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          texts[i],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              wordSpacing: 2,
+                              height: 1.5),
+                        ),
+                        Text(
+                          places[i],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 13,
+                              wordSpacing: 2,
+                              height: 1.5),
+                        ),
+                        Center(
+                          child: Container(
+                            color: Colors.white,
+                            height: 20,
+                            width: 3,
+                          ),
+                        )
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        const Text(
+                          "EHE",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 13,
+                              wordSpacing: 2,
+                              height: 2),
+                          textAlign: TextAlign.end,
+                        ),
+                        Center(
+                          child: Container(
+                            color: Colors.white,
+                            height: 20,
+                            width: 3,
+                          ),
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+                // Padding(padding: EdgeInsets.only(bottom: 20))
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
 
 // ------------------------------------------ CREATE NEW TRACKING SCAFFOLD ----------------------------------------------------------
 
