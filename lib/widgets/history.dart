@@ -143,19 +143,25 @@ class _LogsState extends State<Logs> {
     }
   }
 
-  Future listenCounter(bool listen) async {
-    if (!listen) {
-    } else {
-      final docRef = widget.db.collection("trackings").doc(widget.id);
-      await docRef.get().then((DocumentSnapshot doc) {
-        if (doc.exists) {
-          final data = doc.data() as Map<String, dynamic>;
-          setState(() {
-            evaluate = data["updateCounter"];
-          });
-        }
-      });
-    }
+  Future initiateState() async {
+    final docRef = widget.db.collection("trackings").doc(widget.id);
+    await docRef.get().then((DocumentSnapshot doc) {
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          evaluate = data["updateCounter"];
+        });
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initiateState();
+    setState(() {
+      evaluate = widget.info["updateCounter"];
+    });
   }
 
   @override
