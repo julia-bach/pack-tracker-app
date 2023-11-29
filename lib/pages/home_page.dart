@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pack_tracker/pages/create_new_tracking_page.dart';
-import 'package:pack_tracker/pages/login.dart';
-import 'package:pack_tracker/pages/register.dart';
+import 'package:pack_tracker/pages/start_page.dart';
 import 'package:pack_tracker/widgets/find_package.dart';
 import 'package:pack_tracker/widgets/services.dart';
 
 class HomePage extends StatefulWidget {
   final FirebaseFirestore db;
+  final FirebaseAuth auth;
   const HomePage({
     super.key,
     required this.db,
+    required this.auth,
   });
 
   @override
@@ -20,6 +22,34 @@ class HomePage extends StatefulWidget {
 // HOMEPAGE AREA
 
 class _HomePageState extends State<HomePage> {
+  bool production = false;
+  var userInfo;
+  Future getDbData() async {
+    await widget.db
+        .collection("user")
+        .doc(widget.auth.currentUser?.uid)
+        .get()
+        .then((DocumentSnapshot doc) {
+      if (doc.exists) {
+        userInfo = doc.data() as Map<String, dynamic>;
+
+        setState(() {
+          production = false;
+        });
+      } else {
+        setState(() {
+          production = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getDbData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,6 +113,7 @@ class _HomePageState extends State<HomePage> {
                                         builder: (context) =>
                                             CreateNewTrackingPage(
                                               db: widget.db,
+                                              auth: widget.auth,
                                             )));
                               },
                               style: ButtonStyle(
@@ -113,84 +144,85 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.only(right: 24.0),
             child: IconButton(
                 onPressed: () => {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          backgroundColor: Colors.grey[200],
-                          title: const Text(
-                            'Account Management',
-                            style: TextStyle(
-                                color: Colors.deepPurple,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                          content: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.only(top: 20),
-                              ),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) => LoginPage(
-                                                    db: widget.db,
-                                                  )));
-                                    },
-                                    style: ButtonStyle(
-                                      shape: MaterialStatePropertyAll(
-                                        RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(3),
-                                        ),
-                                      ),
-                                      backgroundColor: MaterialStatePropertyAll(
-                                          Colors.grey[300]),
+                      production
+                          ? widget.auth.signOut()
+                          : showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: Colors.grey[200],
+                                title: const Text(
+                                  'Account Management',
+                                  style: TextStyle(
+                                      color: Colors.deepPurple,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                content: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 20),
                                     ),
-                                    child: Text("Login",
-                                        style: TextStyle(
-                                          color: Colors.deepPurple[400],
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 1.3,
-                                        )),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  RegisterPage(
-                                                    db: widget.db,
-                                                  )));
-                                    },
-                                    style: ButtonStyle(
-                                        backgroundColor:
-                                            MaterialStatePropertyAll(
-                                                Colors.deepPurple[600])),
-                                    child: const Text("Register",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 1.3,
-                                        )),
-                                  ),
-                                ],
-                              )
-                            ],
-                          ),
-                        ),
-                      )
+                                    const Text('Account Management'),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text("User"),
+                                        Text(userInfo["username"]),
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text("Email"),
+                                        Text(userInfo["email"]),
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text("Trackings"),
+                                        Text(userInfo["trackings"].toString()),
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        IconButton(
+                                          onPressed: () {},
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            await widget.auth.signOut();
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => StartPage(
+                                                  auth: widget.auth,
+                                                  db: widget.db,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.logout,
+                                              color: Colors.deepPurple),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
                     },
                 icon: const Icon(Icons.account_circle_rounded)),
           )
@@ -198,7 +230,16 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Center(
         child: Column(
-          children: [FindPackage(db: widget.db), Services(db: widget.db)],
+          children: [
+            FindPackage(
+              db: widget.db,
+              auth: widget.auth,
+            ),
+            Services(
+              db: widget.db,
+              auth: widget.auth,
+            )
+          ],
         ),
       ),
     );

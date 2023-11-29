@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pack_tracker/pages/home_page.dart';
 
@@ -6,8 +7,13 @@ class Tracking extends StatefulWidget {
   final String id;
   final Map<String, dynamic> info;
   final FirebaseFirestore db;
+  final FirebaseAuth auth;
   const Tracking(
-      {super.key, required this.id, required this.info, required this.db});
+      {super.key,
+      required this.id,
+      required this.info,
+      required this.db,
+      required this.auth});
 
   @override
   State<Tracking> createState() => _TrackingState();
@@ -110,6 +116,7 @@ class _TrackingState extends State<Tracking> {
                                           MaterialPageRoute(
                                               builder: (context) => HomePage(
                                                     db: widget.db,
+                                                    auth: widget.auth,
                                                   )));
                                     },
                                     child: const Text("Go back to home page"),

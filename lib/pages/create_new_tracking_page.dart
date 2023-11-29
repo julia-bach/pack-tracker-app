@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pack_tracker/pages/home_page.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,7 +6,9 @@ import 'package:flutter/material.dart';
 
 class CreateNewTrackingPage extends StatefulWidget {
   final FirebaseFirestore db;
-  const CreateNewTrackingPage({super.key, required this.db});
+  final FirebaseAuth auth;
+  const CreateNewTrackingPage(
+      {super.key, required this.db, required this.auth});
 
   @override
   State<CreateNewTrackingPage> createState() => _CreateNewTrackingPageState();
@@ -45,16 +48,23 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
       "weight": weight,
       "residential": residential,
       "updateCounter": updateCounter,
+      "user": widget.auth.currentUser?.uid,
     });
-    final docRef = widget.db.collection("quantity").doc("amount");
-    docRef.get().then((DocumentSnapshot doc) {
+    await widget.db
+        .collection("user")
+        .doc(widget.auth.currentUser?.uid)
+        .update({
+      "trackings": FieldValue.increment(1),
+    });
+    final docRef2 = widget.db.collection("quantity").doc("trackings");
+    docRef2.get().then((DocumentSnapshot doc) {
       if (!doc.exists) {
-        widget.db.collection("quantity").doc("amount").set({
+        widget.db.collection("quantity").doc("trackings").set({
           "total": 1,
         });
       } else {
         final data = doc.data() as Map<String, dynamic>;
-        widget.db.collection("quantity").doc("amount").set({
+        widget.db.collection("quantity").doc("trackings").set({
           "total": data["total"] + 1,
         });
       }
@@ -298,8 +308,10 @@ class _CreateNewTrackingPageState extends State<CreateNewTrackingPage> {
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) =>
-                                                HomePage(db: widget.db)));
+                                            builder: (context) => HomePage(
+                                                  db: widget.db,
+                                                  auth: widget.auth,
+                                                )));
                                   },
                                   child: const Text("Go back home"),
                                 ),

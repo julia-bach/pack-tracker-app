@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class Services extends StatefulWidget {
   final FirebaseFirestore db;
+  final FirebaseAuth auth;
   const Services({
     super.key,
     required this.db,
+    required this.auth,
   });
 
   @override
@@ -13,36 +16,67 @@ class Services extends StatefulWidget {
 }
 
 class _ServicesState extends State<Services> {
+  var ids = [];
+  var titles = [];
+  var updates = [];
+  int amount = 0;
+  int qnt = 0;
+  bool reloaded = false;
+  Future getDbData() async {
+    qnt = 0;
+    final docRef = widget.db
+        .collection("trackings")
+        .where("user", isEqualTo: widget.auth.currentUser?.uid);
+    docRef.snapshots().listen((event) {
+      for (var item in event.docs) {
+        final data = item.data() as Map<String, dynamic>;
+        ids.add(item.id);
+        titles.add(data["title"]);
+        updates.add(data["updateCounter"]);
+        qnt++;
+      }
+      setState(() {
+        amount = qnt;
+      });
+    });
+    setState(() {
+      reloaded = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         const Padding(padding: EdgeInsets.only(top: 40)),
-        const Row(
+        Row(
           children: [
-            Padding(padding: EdgeInsets.only(left: 20)),
-            Text(
+            const Padding(padding: EdgeInsets.only(left: 20)),
+            const Text(
               'My shipments',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
-            Padding(padding: EdgeInsets.only(left: 70, right: 70)),
+            const Padding(padding: EdgeInsets.only(left: 60, right: 60)),
             Row(
               children: [
-                Text(
-                  'View all',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.deepPurpleAccent),
+                TextButton(
+                  onPressed: () {
+                    getDbData();
+                  },
+                  child: const Text('View all',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.deepPurpleAccent)),
                 ),
-                Icon(
+                const Icon(
                   Icons.arrow_forward_rounded,
                   color: Colors.deepPurpleAccent,
                   size: 16,
                 )
               ],
             ),
-            Padding(padding: EdgeInsets.only(right: 20)),
+            const Padding(padding: EdgeInsets.only(right: 20)),
           ],
         ),
         const Padding(padding: EdgeInsets.only(bottom: 20)),
@@ -50,7 +84,19 @@ class _ServicesState extends State<Services> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Card(db: widget.db),
+                reloaded
+                    ? Card(
+                        db: widget.db,
+                        auth: widget.auth,
+                        amount: amount,
+                        ids: ids,
+                        titles: titles,
+                        updates: updates)
+                    : ElevatedButton(
+                        onPressed: () {
+                          getDbData();
+                        },
+                        child: const Text('Fetch data'))
               ],
             ))
       ],
@@ -61,20 +107,26 @@ class _ServicesState extends State<Services> {
 // CARDS FOR THE MY SERVICE AREA
 
 class Card extends StatefulWidget {
+  final ids;
+  final titles;
+  final updates;
+  final amount;
   final FirebaseFirestore db;
+  final FirebaseAuth auth;
   const Card({
     super.key,
     required this.db,
+    required this.auth,
+    this.ids,
+    this.titles,
+    this.updates,
+    this.amount,
   });
   @override
   State<Card> createState() => _CardState();
 }
 
 class _CardState extends State<Card> {
-  var ids = [];
-  var titles = [];
-  var updates = [];
-  int amount = 0;
   String getImage(int progress) {
     if (progress == 2) {
       return "assets/images/in_transit.png";
@@ -86,22 +138,8 @@ class _CardState extends State<Card> {
     }
   }
 
-  Future getDbData() async {
-    final docRef = widget.db.collection("trackings");
-    docRef.snapshots().listen((event) {
-      for (var item in event.docs) {
-        final data = item.data() as Map<String, dynamic>;
-        ids.add(item.id);
-        titles.add(data["title"]);
-        updates.add(data["updateCounter"]);
-        amount++;
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    getDbData();
     return Container(
       margin: const EdgeInsets.only(left: 10, right: 10),
       decoration: BoxDecoration(
@@ -110,7 +148,7 @@ class _CardState extends State<Card> {
       ),
       child: Row(
         children: [
-          for (int i = 0; i < amount; i++)
+          for (int i = 0; i < widget.amount; i++)
             Row(
               children: [
                 const Padding(padding: EdgeInsets.only(left: 10)),
@@ -122,16 +160,16 @@ class _CardState extends State<Card> {
                     children: [
                       ClipRRect(
                           borderRadius: BorderRadius.circular(50),
-                          child: Image.asset(getImage(updates[i]))),
+                          child: Image.asset(getImage(widget.updates[i]))),
                       Text(
-                        titles[i],
+                        widget.titles[i],
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
                         ),
                       ),
                       Text(
-                        ids[i],
+                        widget.ids[i],
                         style: const TextStyle(
                           fontSize: 14,
                         ),

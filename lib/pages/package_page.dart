@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pack_tracker/pages/home_page.dart';
 import 'package:pack_tracker/widgets/history.dart';
@@ -8,8 +9,13 @@ class PackagePage extends StatefulWidget {
   final String id;
   final Map<String, dynamic> info;
   final FirebaseFirestore db;
+  final FirebaseAuth auth;
   const PackagePage(
-      {super.key, required this.id, required this.info, required this.db});
+      {super.key,
+      required this.id,
+      required this.info,
+      required this.db,
+      required this.auth});
 
   @override
   State<PackagePage> createState() => _PackagePageState();
@@ -35,6 +41,7 @@ class _PackagePageState extends State<PackagePage> {
                     MaterialPageRoute(
                         builder: (context) => HomePage(
                               db: widget.db,
+                              auth: widget.auth,
                             )));
               },
               icon: const Icon(Icons.arrow_back_rounded),
@@ -57,7 +64,12 @@ class _PackagePageState extends State<PackagePage> {
       body: Center(
           child: Column(
         children: [
-          Tracking(id: widget.id, info: widget.info, db: widget.db),
+          Tracking(
+            id: widget.id,
+            info: widget.info,
+            db: widget.db,
+            auth: widget.auth,
+          ),
           History(id: widget.id, info: widget.info, db: widget.db),
         ],
       )),

@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pack_tracker/pages/home_page.dart';
 import 'package:pack_tracker/pages/package_page.dart';
 
 class FindPackage extends StatefulWidget {
   final FirebaseFirestore db;
-  const FindPackage({super.key, required this.db});
+  final FirebaseAuth auth;
+  const FindPackage({super.key, required this.db, required this.auth});
 
   @override
   State<FindPackage> createState() => _FindPackageState();
@@ -35,7 +37,10 @@ class _FindPackageState extends State<FindPackage> {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => HomePage(db: widget.db)));
+                      builder: (context) => HomePage(
+                            db: widget.db,
+                            auth: widget.auth,
+                          )));
             },
             style: ButtonStyle(
               shape: MaterialStatePropertyAll(
@@ -67,6 +72,7 @@ class _FindPackageState extends State<FindPackage> {
                       id: trackNumber,
                       info: data,
                       db: widget.db,
+                      auth: widget.auth,
                     )));
       } else {
         showDialog(
@@ -87,7 +93,10 @@ class _FindPackageState extends State<FindPackage> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => HomePage(db: widget.db)));
+                        builder: (context) => HomePage(
+                              db: widget.db,
+                              auth: widget.auth,
+                            )));
               },
               style: ButtonStyle(
                 shape: MaterialStatePropertyAll(
