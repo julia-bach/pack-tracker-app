@@ -44,6 +44,50 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future deleteByAccount(String? uid) async {
+    int amount = 0;
+    widget.db
+        .collection("trackings")
+        .where("user", isEqualTo: uid)
+        .get()
+        .then((docs) {
+      for (var doc in docs.docs) {
+        amount++;
+        widget.db.collection("trackings").doc(doc.id).delete();
+      }
+    });
+    widget.db
+        .collection("quantity")
+        .doc("trackings")
+        .get()
+        .then((DocumentSnapshot doc) {
+      widget.db.collection("quantity").doc("trackings").update({
+        "total": FieldValue.increment(-amount),
+      });
+    });
+    widget.db.collection("quantity").doc("users").update({
+      "total": FieldValue.increment(-1),
+    });
+  }
+
+  Future deleteAccount() async {
+    String password = '';
+    String email = '';
+    widget.db
+        .collection("user")
+        .doc(widget.auth.currentUser?.uid)
+        .get()
+        .then((DocumentSnapshot doc) {
+      var data = doc.data() as Map<String, dynamic>;
+      password = data["password"];
+      email = data["email"];
+    });
+    widget.db.collection("user").doc(widget.auth.currentUser?.uid).delete();
+    widget.auth.currentUser?.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: email, password: password));
+    await widget.auth.currentUser?.delete();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -165,37 +209,40 @@ class _HomePageState extends State<HomePage> {
                                     const Padding(
                                       padding: EdgeInsets.only(top: 20),
                                     ),
-                                    const Text('Account Management'),
                                     Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceEvenly,
                                       children: [
-                                        const Text("User"),
                                         Text(userInfo["username"]),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text("Email"),
-                                        Text(userInfo["email"]),
-                                      ],
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text("Trackings"),
                                         Text(userInfo["trackings"].toString()),
                                       ],
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 20),
+                                    ),
+                                    Text(userInfo["email"]),
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 10),
                                     ),
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         IconButton(
-                                          onPressed: () {},
+                                          onPressed: () async {
+                                            await deleteByAccount(
+                                                widget.auth.currentUser?.uid);
+                                            await deleteAccount();
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => StartPage(
+                                                  auth: widget.auth,
+                                                  db: widget.db,
+                                                ),
+                                              ),
+                                            );
+                                          },
                                           icon: const Icon(
                                             Icons.delete,
                                             color: Colors.red,

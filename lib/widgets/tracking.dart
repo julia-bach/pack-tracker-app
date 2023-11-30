@@ -23,14 +23,16 @@ class _TrackingState extends State<Tracking> {
   Future deleteById(String id) async {
     widget.db
         .collection("quantity")
-        .doc("amount")
+        .doc("trackings")
         .get()
         .then((DocumentSnapshot doc) {
-      widget.db.collection("quantity").doc("amount").set({
-        "total": doc["total"] - 1,
+      widget.db.collection("quantity").doc("trackings").update({
+        "total": FieldValue.increment(-1),
       });
     });
-
+    widget.db.collection("user").doc(widget.auth.currentUser?.uid).update({
+      "trackings": FieldValue.increment(-1),
+    });
     await widget.db.collection("trackings").doc(id).delete();
   }
 
