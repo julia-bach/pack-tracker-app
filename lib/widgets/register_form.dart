@@ -196,7 +196,7 @@ class _RegisterFormState extends State<RegisterForm> {
                   ),
                   obscureText: reveal,
                   obscuringCharacter: '*',
-                  textInputAction: TextInputAction.done,
+                  textInputAction: TextInputAction.next,
                   keyboardType: TextInputType.visiblePassword,
                   style: TextStyle(
                     color: Colors.grey[700],

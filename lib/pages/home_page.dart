@@ -23,6 +23,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool production = false;
+  bool listen = true;
   var userInfo;
   Future getDbData() async {
     await widget.db
@@ -46,6 +47,9 @@ class _HomePageState extends State<HomePage> {
 
   Future deleteByAccount(String? uid) async {
     int amount = 0;
+    setState(() {
+      listen = false;
+    });
     widget.db
         .collection("trackings")
         .where("user", isEqualTo: uid)
@@ -285,6 +289,7 @@ class _HomePageState extends State<HomePage> {
             Services(
               db: widget.db,
               auth: widget.auth,
+              listen: listen,
             )
           ],
         ),

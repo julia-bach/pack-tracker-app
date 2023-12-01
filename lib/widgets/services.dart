@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 class Services extends StatefulWidget {
   final FirebaseFirestore db;
   final FirebaseAuth auth;
+  final bool listen;
   const Services({
     super.key,
     required this.db,
     required this.auth,
+    required this.listen,
   });
 
   @override
@@ -22,23 +24,25 @@ class _ServicesState extends State<Services> {
   int amount = 0;
   int qnt = 0;
   bool reloaded = false;
-  Future getDbData() async {
+  Future getDbData(bool listen) async {
     qnt = 0;
-    final docRef = widget.db
-        .collection("trackings")
-        .where("user", isEqualTo: widget.auth.currentUser?.uid);
-    docRef.snapshots().listen((event) {
-      for (var item in event.docs) {
-        final data = item.data() as Map<String, dynamic>;
-        ids.add(item.id);
-        titles.add(data["title"]);
-        updates.add(data["updateCounter"]);
-        qnt++;
-      }
-      setState(() {
-        amount = qnt;
+    if (listen) {
+      final docRef = widget.db
+          .collection("trackings")
+          .where("user", isEqualTo: widget.auth.currentUser?.uid);
+      docRef.snapshots().listen((event) {
+        for (var item in event.docs) {
+          final data = item.data() as Map<String, dynamic>;
+          ids.add(item.id);
+          titles.add(data["title"]);
+          updates.add(data["updateCounter"]);
+          qnt++;
+        }
+        setState(() {
+          amount = qnt;
+        });
       });
-    });
+    }
     setState(() {
       reloaded = true;
     });
@@ -61,7 +65,7 @@ class _ServicesState extends State<Services> {
               children: [
                 TextButton(
                   onPressed: () {
-                    getDbData();
+                    getDbData(widget.listen);
                   },
                   child: const Text('View all',
                       style: TextStyle(
@@ -94,7 +98,7 @@ class _ServicesState extends State<Services> {
                         updates: updates)
                     : ElevatedButton(
                         onPressed: () {
-                          getDbData();
+                          getDbData(widget.listen);
                         },
                         child: const Text('Fetch data'))
               ],
